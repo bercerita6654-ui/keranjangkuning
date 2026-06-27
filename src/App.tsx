@@ -1075,7 +1075,8 @@ export default function App() {
 
     } catch (err) {
       console.error("PDF Error:", err);
-      showToast("Terjadi kesalahan sistem saat memproses PDF.", "error");
+      const errMsg = err instanceof Error ? err.message : String(err);
+      showToast(`Terjadi kesalahan sistem saat memproses PDF: ${errMsg}`, "error");
     } finally {
       setLoading(false);
     }
