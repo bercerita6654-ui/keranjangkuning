@@ -125,6 +125,38 @@ export default function App() {
   const [globalPriceTier, setGlobalPriceTier] = useState<'eceran' | 'grosir' | 'partai'>('eceran');
   const [catalogTiers, setCatalogTiers] = useState<Record<string, 'eceran' | 'grosir' | 'partai' | 'custom'>>({});
   const [catalogCustomPrices, setCatalogCustomPrices] = useState<Record<string, number>>({});
+  const [catalogPromoType, setCatalogPromoType] = useState<Record<string, 'none' | 'percent' | 'strikethrough'>>(() => {
+    try {
+      const saved = localStorage.getItem('gm_catalog_promo_type');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const [catalogPromoValue, setCatalogPromoValue] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem('gm_catalog_promo_val');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gm_catalog_promo_type', JSON.stringify(catalogPromoType));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [catalogPromoType]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gm_catalog_promo_val', JSON.stringify(catalogPromoValue));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [catalogPromoValue]);
 
   // Customer State
   const [customerName, setCustomerName] = useState('');
@@ -1021,10 +1053,6 @@ export default function App() {
           const priceStartY = textStartY + (textToPrint.length * lineHeightPx) + 0.5;
 
           if (pdfPrice !== 'none') {
-            doc.setFontSize(cols <= 2 ? 9 : (cols <= 4 ? 8 : 6));
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(180, 40, 40); 
-            
             let priceVal = 0;
             if (pdfPrice === 'active') {
               const activeTier = catalogTiers[p.id] || globalPriceTier;
@@ -1032,9 +1060,65 @@ export default function App() {
             } else {
               priceVal = (p.harga ? p.harga[pdfPrice as 'eceran' | 'grosir' | 'partai'] : 0) || 0;
             }
-            
-            const unitText = (p.unit || '').toUpperCase();
-            doc.text(`Rp ${formatNumber(priceVal)}${unitText ? ' /' + unitText : ''}`, currentX + 1, priceStartY);
+
+            const promoType = catalogPromoType[p.id] || 'none';
+            const promoValue = catalogPromoValue[p.id] || 0;
+
+            let hasPromo = false;
+            let finalPrice = priceVal;
+            let originalPrice = 0;
+            let promoText = '';
+
+            if (promoType === 'percent' && promoValue > 0) {
+              hasPromo = true;
+              originalPrice = priceVal;
+              finalPrice = Math.round(priceVal * (1 - promoValue / 100));
+              promoText = `-${promoValue}%`;
+            } else if (promoType === 'strikethrough' && promoValue > 0) {
+              hasPromo = true;
+              originalPrice = promoValue;
+              finalPrice = priceVal;
+              promoText = 'PROMO';
+            }
+
+            if (hasPromo) {
+              // Draw original price (crossed out) in gray
+              doc.setFontSize(cols <= 2 ? 7.5 : (cols <= 4 ? 6.5 : 5));
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(140, 140, 140);
+              const origText = `Rp ${formatNumber(originalPrice)}`;
+              doc.text(origText, currentX + 1, priceStartY);
+              
+              // Draw line over origText
+              const textWidth = doc.getTextWidth(origText);
+              doc.setDrawColor(140, 140, 140);
+              doc.setLineWidth(0.25);
+              const lineY = priceStartY - (cols <= 2 ? 0.7 : (cols <= 4 ? 0.5 : 0.4));
+              doc.line(currentX + 1, lineY, currentX + 1 + textWidth, lineY);
+              
+              // Draw promo label
+              if (promoText) {
+                doc.setFontSize(cols <= 2 ? 6.5 : (cols <= 4 ? 5.5 : 4.5));
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(220, 30, 30);
+                doc.text(` (${promoText})`, currentX + 1 + textWidth + 1, priceStartY);
+              }
+              
+              // Draw final price below it
+              const nextLineY = priceStartY + (cols <= 2 ? 3.3 : (cols <= 4 ? 2.6 : 2.0));
+              doc.setFontSize(cols <= 2 ? 9 : (cols <= 4 ? 8 : 6));
+              doc.setFont("helvetica", "bold");
+              doc.setTextColor(180, 40, 40);
+              const unitText = (p.unit || '').toUpperCase();
+              doc.text(`Rp ${formatNumber(finalPrice)}${unitText ? ' /' + unitText : ''}`, currentX + 1, nextLineY);
+            } else {
+              // Draw normal price
+              doc.setFontSize(cols <= 2 ? 9 : (cols <= 4 ? 8 : 6));
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(180, 40, 40); 
+              const unitText = (p.unit || '').toUpperCase();
+              doc.text(`Rp ${formatNumber(priceVal)}${unitText ? ' /' + unitText : ''}`, currentX + 1, priceStartY);
+            }
           }
           
           currentCol++;
@@ -1743,6 +1827,53 @@ export default function App() {
                               Update: {targetDate}
                             </p>
                           )}
+
+                          {(() => {
+                            const basePrice = activeTier === 'custom' ? (catalogCustomPrices[p.id] || 0) : (p.harga ? p.harga[activeTier] : 0);
+                            const promoType = catalogPromoType[p.id] || 'none';
+                            const promoValue = catalogPromoValue[p.id] || 0;
+
+                            let hasPromo = false;
+                            let finalPrice = basePrice;
+                            let originalPrice = 0;
+                            let promoLabel = '';
+
+                            if (promoType === 'percent' && promoValue > 0) {
+                              hasPromo = true;
+                              originalPrice = basePrice;
+                              finalPrice = Math.round(basePrice * (1 - promoValue / 100));
+                              promoLabel = `-${promoValue}%`;
+                            } else if (promoType === 'strikethrough' && promoValue > 0) {
+                              hasPromo = true;
+                              originalPrice = promoValue;
+                              finalPrice = basePrice;
+                              promoLabel = 'PROMO';
+                            }
+
+                            return (
+                              <div className="mb-2 bg-gray-50/50 p-1.5 rounded-lg border border-gray-100/80 flex flex-col justify-center min-h-[38px]">
+                                {hasPromo ? (
+                                  <>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-[10px] text-gray-400 line-through font-semibold leading-none">
+                                        {formatRupiah(originalPrice)}
+                                      </span>
+                                      <span className="text-[9px] bg-red-500 text-white font-extrabold px-1 rounded leading-none py-0.5 text-[8px]">
+                                        {promoLabel}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs font-black text-red-600 mt-0.5">
+                                      {formatRupiah(finalPrice)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs font-black text-blue-600">
+                                    {formatRupiah(basePrice)}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                           
                           <select
                             value={activeTier}
@@ -1767,6 +1898,58 @@ export default function App() {
                               />
                             </div>
                           )}
+
+                          {/* Promo / Diskon Settings */}
+                          <div className="mt-1 pb-2 mb-2 border-b border-dashed border-gray-100">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-bold text-gray-500 uppercase">Promo / Diskon</span>
+                              {catalogPromoType[p.id] && catalogPromoType[p.id] !== 'none' && (
+                                <span className="text-[9px] px-1 bg-red-100 text-red-600 rounded font-bold">Aktif</span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-1">
+                              <select
+                                value={catalogPromoType[p.id] || 'none'}
+                                onChange={(e) => {
+                                  const type = e.target.value as 'none' | 'percent' | 'strikethrough';
+                                  setCatalogPromoType(prev => ({ ...prev, [p.id]: type }));
+                                  if (type === 'none') {
+                                    setCatalogPromoValue(prev => {
+                                      const copy = { ...prev };
+                                      delete copy[p.id];
+                                      return copy;
+                                    });
+                                  } else if (catalogPromoValue[p.id] === undefined) {
+                                    setCatalogPromoValue(prev => ({ ...prev, [p.id]: type === 'percent' ? 10 : 0 }));
+                                  }
+                                }}
+                                className="text-[10px] font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded p-1 outline-none cursor-pointer"
+                              >
+                                <option value="none">Tanpa Promo</option>
+                                <option value="percent">Diskon %</option>
+                                <option value="strikethrough">Harga Coret</option>
+                              </select>
+
+                              {catalogPromoType[p.id] && catalogPromoType[p.id] !== 'none' && (
+                                <div className="flex items-center bg-white border border-gray-200 rounded overflow-hidden">
+                                  <input
+                                    type="number"
+                                    value={catalogPromoValue[p.id] || ''}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value) || 0;
+                                      setCatalogPromoValue(prev => ({ ...prev, [p.id]: val }));
+                                    }}
+                                    className="w-full text-right px-1 py-0.5 text-[10px] font-bold text-gray-800 outline-none"
+                                    placeholder={catalogPromoType[p.id] === 'percent' ? "10" : "0"}
+                                    min="0"
+                                  />
+                                  <span className="bg-gray-50 text-gray-400 px-1 py-0.5 text-[9px] font-bold border-l border-gray-100">
+                                    {catalogPromoType[p.id] === 'percent' ? "%" : "Rp"}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
 
                           <div className="flex flex-col gap-1.5 mt-auto">
                             <button
