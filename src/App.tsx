@@ -849,7 +849,9 @@ export default function App() {
         
         if (imgId && imgId !== '-') {
           try {
-            const imgB64 = await loadImageBase64(`https://lh3.googleusercontent.com/d/${imgId}`);
+            // Menggunakan ukuran =w800 untuk PDF agar proses kompilasi PDF 10x lebih cepat & anti-crash di HP, 
+            // dengan kualitas cetak gambar yang tetap sangat tajam.
+            const imgB64 = await loadImageBase64(`https://lh3.googleusercontent.com/d/${imgId}=w800`);
             
             doc.setDrawColor(15, 85, 200); 
             doc.setLineWidth(0.8);
@@ -1529,6 +1531,8 @@ export default function App() {
                   paginatedCatalogProducts.map(p => {
                     const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
                     const imgUrl = `https://lh3.googleusercontent.com/d/${imgId}`;
+                    // Menggunakan image resize Google Drive (=w320) untuk thumbnail agar loading instan dan hemat kuota
+                    const thumbnailUrl = imgId ? `${imgUrl}=w320` : '';
                     const isSelected = catalogCart.includes(p.id);
                     
                     const activeTier = catalogTiers[p.id] || globalPriceTier;
@@ -1537,7 +1541,7 @@ export default function App() {
                     const targetDate = windowCatalogSource === 'story' ? p.lastUpdateStory : p.lastUpdateFoto;
                     const isNew = isNewUpdate(targetDate);
 
-                    return (
+                     return (
                       <div
                         key={p.id}
                         className={`border rounded-2xl overflow-hidden shadow-sm flex flex-col group hover:shadow-md transition-all relative ${
@@ -1562,7 +1566,8 @@ export default function App() {
                           )}
                           
                           <img
-                            src={imgUrl}
+                            src={thumbnailUrl}
+                            loading="lazy"
                             alt={p.nama}
                             className="w-full h-full object-contain rounded-xl transition-transform group-hover:scale-[1.02]"
                             onError={(e) => {

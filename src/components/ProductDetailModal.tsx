@@ -26,7 +26,8 @@ export default function ProductDetailModal({
 
   const imgId = product.fotoProdukId || product.gambarStoryId;
   const imgUrl = imgId
-    ? `https://lh3.googleusercontent.com/d/${imgId}`
+    // Menggunakan =w640 agar gambar detail terload instan namun sangat tajam di layar handphone maupun laptop
+    ? `https://lh3.googleusercontent.com/d/${imgId}=w640`
     : `https://placehold.co/600x600/f8fafc/94a3b8?text=Gambar+Tidak+Ada`;
 
   return (
