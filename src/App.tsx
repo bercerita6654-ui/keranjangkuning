@@ -128,8 +128,36 @@ export default function App() {
   const [customerNote, setCustomerNote] = useState('');
 
   // PDF Export States
-  const [pdfGrid, setPdfGrid] = useState('2x2');
-  const [pdfPrice, setPdfPrice] = useState('active');
+  const [pdfGrid, setPdfGrid] = useState(() => {
+    try {
+      return localStorage.getItem('gm_pdf_grid') || '2x2';
+    } catch (e) {
+      return '2x2';
+    }
+  });
+  const [pdfPrice, setPdfPrice] = useState(() => {
+    try {
+      return localStorage.getItem('gm_pdf_price') || 'active';
+    } catch (e) {
+      return 'active';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gm_pdf_grid', pdfGrid);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [pdfGrid]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gm_pdf_price', pdfPrice);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [pdfPrice]);
 
   // Themes
   const [theme, setTheme] = useState<'yellow' | 'blue' | 'emerald' | 'rose' | 'purple' | 'custom'>('yellow');
