@@ -1,0 +1,6 @@
+{
+  "name": "Keranjang Kuning",
+  "description": "Aplikasi manajemen pesanan dan katalog produk berbasis web dengan fitur ekspor PDF dan pemindai barcode.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

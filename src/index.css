@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-primary-50: rgb(var(--theme-50));
+  --color-primary-100: rgb(var(--theme-100));
+  --color-primary-200: rgb(var(--theme-200));
+  --color-primary-300: rgb(var(--theme-300));
+  --color-primary-400: rgb(var(--theme-400));
+  --color-primary-500: rgb(var(--theme-500));
+  --color-primary-600: rgb(var(--theme-600));
+  --color-primary-700: rgb(var(--theme-700));
+  --color-primary-800: rgb(var(--theme-800));
+  --color-primary-900: rgb(var(--theme-900));
+}
+
+:root {
+  /* Kuning Default */
+  --theme-50: 254 252 232;
+  --theme-100: 254 249 195;
+  --theme-200: 254 240 138;
+  --theme-300: 253 224 71;
+  --theme-400: 250 204 21;
+  --theme-500: 234 179 8;
+  --theme-600: 202 138 4;
+  --theme-700: 161 98 7;
+  --theme-800: 133 77 14;
+  --theme-900: 113 63 18;
+}
+
+[data-theme="blue"] {
+  --theme-50: 239 246 255;
+  --theme-100: 219 234 254;
+  --theme-200: 191 219 254;
+  --theme-300: 147 197 253;
+  --theme-400: 96 165 250;
+  --theme-500: 59 130 246;
+  --theme-600: 37 99 235;
+  --theme-700: 29 78 216;
+  --theme-800: 30 64 175;
+  --theme-900: 30 58 138;
+}
+
+[data-theme="emerald"] {
+  --theme-50: 236 253 245;
+  --theme-100: 209 250 229;
+  --theme-200: 167 243 208;
+  --theme-300: 110 231 183;
+  --theme-400: 52 211 153;
+  --theme-500: 16 185 129;
+  --theme-600: 5 150 105;
+  --theme-700: 4 120 87;
+  --theme-800: 6 95 70;
+  --theme-900: 6 78 59;
+}
+
+[data-theme="rose"] {
+  --theme-50: 255 241 242;
+  --theme-100: 255 228 230;
+  --theme-200: 254 205 211;
+  --theme-300: 253 164 175;
+  --theme-400: 251 113 133;
+  --theme-500: 244 63 94;
+  --theme-600: 225 29 72;
+  --theme-700: 190 18 60;
+  --theme-800: 159 18 57;
+  --theme-900: 136 19 55;
+}
+
+[data-theme="purple"] {
+  --theme-50: 250 245 255;
+  --theme-100: 243 232 255;
+  --theme-200: 233 213 255;
+  --theme-300: 216 180 254;
+  --theme-400: 192 132 252;
+  --theme-500: 168 85 247;
+  --theme-600: 147 51 234;
+  --theme-700: 126 34 206;
+  --theme-800: 107 33 168;
+  --theme-900: 88 28 135;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Active click effect for mobile */
+.active-tap:active {
+  transform: scale(0.97);
+  transition: transform 0.1s;
+}
+
+/* Sembunyikan panah atas/bawah bawaan browser pada input number */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Animasi putar pelan untuk refresh button */
+.spin-slow {
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Animasi NEW UPDATE kedap-kedip */
+@keyframes pulse-fast {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse-fast {
+  animation: pulse-fast 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
