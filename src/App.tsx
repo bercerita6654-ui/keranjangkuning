@@ -1890,7 +1890,7 @@ export default function App() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] p-4 lg:hidden z-30 animate-fadeIn">
           <div className="flex justify-between items-center gap-4">
             <div className="flex flex-col">
-              <span class="text-xs font-semibold text-gray-500">Total Belanja</span>
+              <span className="text-xs font-semibold text-gray-500">Total Belanja</span>
               <span className="text-lg font-black text-gray-800">{formatRupiah(cartTotal)}</span>
             </div>
             <button
@@ -1904,6 +1904,23 @@ export default function App() {
               </span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Floating Mobile Catalog Print Button (Floating FAB) */}
+      {activeTab === 'catalog' && catalogCart.length > 0 && (
+        <div 
+          className={`fixed right-5 z-40 sm:hidden animate-fadeIn transition-all duration-300 ${
+            cartQty > 0 ? 'bottom-24' : 'bottom-6'
+          }`}
+        >
+          <button
+            onClick={generatePDF}
+            className="active-tap flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-5 py-4 rounded-full shadow-2xl shadow-blue-500/40 border border-blue-500/50 cursor-pointer"
+          >
+            <Printer className="w-5 h-5" />
+            <span className="text-xs uppercase tracking-wider">Buat PDF ({catalogCart.length})</span>
+          </button>
         </div>
       )}
 
