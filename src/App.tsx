@@ -1779,45 +1779,36 @@ export default function App() {
                               <span>{isSelected ? 'Hapus Pilihan' : 'Pilih ke PDF'}</span>
                             </button>
 
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <button
-                                onClick={async () => {
-                                  showToast("Sedang memproses gambar...", "success");
-                                  try {
-                                    const response = await fetch(imgUrl);
-                                    const blob = await response.blob();
-                                    const objectUrl = window.URL.createObjectURL(blob);
-                                    
-                                    const a = document.createElement('a');
-                                    a.href = objectUrl;
-                                    a.download = `${p.sku}.jpg`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    
-                                    if (isInIframe) {
-                                      showToast("Gambar diunduh! Jika tidak tersimpan otomatis, silakan klik ikon 'Buka di Tab Baru' di kanan atas.", "success");
-                                    } else {
-                                      showToast("Gambar berhasil diunduh!", "success");
-                                    }
-                                    setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
-                                  } catch (err) {
-                                    console.error("Gagal download:", err);
-                                    showToast("Gagal mendownload gambar. Coba lagi nanti.", "error");
+                            <button
+                              onClick={async () => {
+                                showToast("Sedang memproses gambar...", "success");
+                                try {
+                                  const response = await fetch(imgUrl);
+                                  const blob = await response.blob();
+                                  const objectUrl = window.URL.createObjectURL(blob);
+                                  
+                                  const a = document.createElement('a');
+                                  a.href = objectUrl;
+                                  a.download = `${p.sku}.jpg`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  
+                                  if (isInIframe) {
+                                    showToast("Gambar diunduh! Jika tidak tersimpan otomatis, silakan klik ikon 'Buka di Tab Baru' di kanan atas.", "success");
+                                  } else {
+                                    showToast("Gambar berhasil diunduh!", "success");
                                   }
-                                }}
-                                className="py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-lg flex justify-center items-center gap-1 font-semibold text-xs transition-colors active-tap shadow-sm cursor-pointer"
-                              >
-                                <Download className="w-3.5 h-3.5" /> Download
-                              </button>
-
-                              <button
-                                onClick={() => handleShareProduct(p, imgUrl, activeTier, activeCustomPrice)}
-                                className="py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg flex justify-center items-center gap-1 font-semibold text-xs transition-colors active-tap shadow-sm cursor-pointer"
-                              >
-                                <Share2 className="w-3.5 h-3.5" /> Bagikan
-                              </button>
-                            </div>
+                                  setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+                                } catch (err) {
+                                  console.error("Gagal download:", err);
+                                  showToast("Gagal mendownload gambar. Coba lagi nanti.", "error");
+                                }
+                              }}
+                              className="w-full py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-lg flex justify-center items-center gap-1.5 font-semibold text-xs transition-colors active-tap shadow-sm cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Download Gambar
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -2147,7 +2138,7 @@ export default function App() {
           </div>
 
           {/* Action Bar */}
-          <div className="w-full max-w-md mx-auto bg-gray-900/90 backdrop-blur-md rounded-2xl border border-gray-800 p-4 flex gap-3 justify-center z-10 shadow-2xl mb-4">
+          <div className="w-full max-w-md mx-auto bg-gray-900/90 backdrop-blur-md rounded-2xl border border-gray-800 p-4 flex justify-center z-10 shadow-2xl mb-4">
             <button
               onClick={async (e) => {
                 e.stopPropagation();
@@ -2170,23 +2161,9 @@ export default function App() {
                   showToast("Gagal mengunduh gambar", "error");
                 }
               }}
-              className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all border border-white/10 active-tap cursor-pointer"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2 font-extrabold text-xs transition-all active-tap shadow-lg shadow-blue-500/20 cursor-pointer"
             >
               <Download className="w-4 h-4" /> Download JPG
-            </button>
-            
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (lightboxProduct) {
-                  const activeTier = catalogTiers[lightboxProduct.id] || globalPriceTier;
-                  const activeCustomPrice = catalogCustomPrices[lightboxProduct.id] || 0;
-                  handleShareProduct(lightboxProduct, lightboxUrl, activeTier, activeCustomPrice);
-                }
-              }}
-              className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2 font-extrabold text-xs transition-all active-tap shadow-lg shadow-blue-500/20 cursor-pointer"
-            >
-              <Share2 className="w-4 h-4" /> Bagikan Gambar
             </button>
           </div>
         </div>
