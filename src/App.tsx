@@ -88,6 +88,37 @@ const loadImageBase64 = (url: string): Promise<string> => {
   });
 };
 
+const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: string; className: string; onError: (e: any) => void }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  useEffect(() => {
+    setLoaded(false);
+    setCurrentSrc(src);
+  }, [src]);
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      {!loaded && (
+        <div className="absolute inset-0 bg-slate-100 animate-pulse rounded-xl flex items-center justify-center">
+          <ImageIcon className="w-8 h-8 text-slate-300 animate-bounce" />
+        </div>
+      )}
+      <img
+        src={currentSrc}
+        loading="lazy"
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        onError={(e) => {
+          setLoaded(true);
+          onError(e);
+        }}
+        className={`${className} transition-all duration-700 ease-out ${loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+      />
+    </div>
+  );
+};
+
 export default function App() {
   // Navigation & View
   const [activeTab, setActiveTab] = useState<'shop' | 'catalog'>('shop');
@@ -1800,11 +1831,10 @@ export default function App() {
                             </div>
                           )}
                           
-                          <img
+                          <CatalogImage
                             src={thumbnailUrl}
-                            loading="lazy"
                             alt={p.nama}
-                            className="w-full h-full object-contain rounded-xl transition-transform group-hover:scale-[1.02]"
+                            className="w-full h-full object-contain rounded-xl group-hover:scale-[1.02]"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/f8fafc/94a3b8?text=Gambar+Rusak';
                             }}
