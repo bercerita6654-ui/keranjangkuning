@@ -148,6 +148,8 @@ export default function App() {
     imgUrl: string;
     shareText: string;
   } | null>(null);
+  const [pdfNameModalOpen, setPdfNameModalOpen] = useState(false);
+  const [pdfCustomName, setPdfCustomName] = useState('');
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -551,7 +553,7 @@ export default function App() {
         // Coba download gambarnya dulu agar bisa di-share sebagai file (sangat optimal di WhatsApp / Instagram)
         const response = await fetch(imgUrl);
         const blob = await response.blob();
-        const file = new File([blob], `Katalog_${product.sku}.jpg`, { type: 'image/jpeg' });
+        const file = new File([blob], `${product.sku}.jpg`, { type: 'image/jpeg' });
         
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
@@ -711,7 +713,7 @@ export default function App() {
     document.body.removeChild(textArea);
   };
 
-  const generatePDF = async () => {
+  const generatePDF = async (customFilename?: string) => {
     if (catalogCart.length === 0) {
       showToast("Pilih minimal 1 produk ke keranjang PDF terlebih dahulu.", "error");
       return;
@@ -720,6 +722,13 @@ export default function App() {
     const targetProducts = products.filter(p => catalogCart.includes(p.id));
     if (targetProducts.length === 0) {
       showToast("Tidak ada produk valid yang terpilih.", "error");
+      return;
+    }
+
+    if (!customFilename) {
+      const dateStr = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
+      setPdfCustomName(`Katalog_GlobalMart_${dateStr}`);
+      setPdfNameModalOpen(true);
       return;
     }
 
@@ -996,7 +1005,11 @@ export default function App() {
       }
 
       // Selalu gunakan doc.save() agar jsPDF menangani download asli secara optimal di PC maupun Mobile.
-      doc.save(`Katalog_${windowCatalogSource.toUpperCase()}_${new Date().getTime()}.pdf`);
+      let finalName = customFilename.trim();
+      if (!finalName.toLowerCase().endsWith('.pdf')) {
+        finalName += '.pdf';
+      }
+      doc.save(finalName);
       
       if (isInIframe) {
         showToast("PDF siap! Jika tidak terdownload otomatis, silakan klik ikon 'Buka di Tab Baru' di kanan atas layar.", "success");
@@ -1715,7 +1728,7 @@ export default function App() {
                                     
                                     const a = document.createElement('a');
                                     a.href = objectUrl;
-                                    a.download = `Katalog_${p.sku}.jpg`;
+                                    a.download = `${p.sku}.jpg`;
                                     document.body.appendChild(a);
                                     a.click();
                                     document.body.removeChild(a);
@@ -2084,7 +2097,7 @@ export default function App() {
                   const objectUrl = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = objectUrl;
-                  a.download = `Katalog_${lightboxProduct.sku}.jpg`;
+                  a.download = `${lightboxProduct.sku}.jpg`;
                   document.body.appendChild(a);
                   a.click();
                   document.body.removeChild(a);
@@ -2160,6 +2173,85 @@ export default function App() {
         }}
       />
 
+      {/* Custom PDF Naming Modal */}
+      {pdfNameModalOpen && (
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-gray-900/70 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-gray-100 animate-slideUp">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                <div className="bg-blue-100 text-blue-600 p-1.5 rounded-lg">
+                  <FileText className="w-5 h-5" />
+                </div>
+                Nama File PDF Katalog
+              </h3>
+              <button
+                onClick={() => setPdfNameModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-2 rounded-full transition-colors active-tap cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!pdfCustomName.trim()) {
+                  showToast("Nama file tidak boleh kosong.", "error");
+                  return;
+                }
+                setPdfNameModalOpen(false);
+                generatePDF(pdfCustomName);
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+                  Berikan Nama File PDF
+                </label>
+                <div className="relative rounded-xl shadow-sm">
+                  <input
+                    type="text"
+                    required
+                    value={pdfCustomName}
+                    onChange={(e) => setPdfCustomName(e.target.value)}
+                    placeholder="Contoh: Katalog_GlobalMart"
+                    autoFocus
+                    onFocus={(e) => e.target.select()}
+                    className="w-full text-sm font-semibold text-gray-800 border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
+                    <span className="text-sm font-bold text-gray-400">.pdf</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+                  Silakan sesuaikan nama file di atas sesuai keinginan Anda sebelum disimpan ke perangkat.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPdfNameModalOpen(false)}
+                  className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-xl text-xs border border-gray-200 transition-colors active-tap cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 flex items-center justify-center gap-1.5 transition-colors active-tap cursor-pointer"
+                >
+                  <Download className="w-4 h-4" /> Unduh PDF
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Custom Share Modal */}
       {shareProductData && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-gray-900/70 p-4 backdrop-blur-sm animate-fadeIn">
@@ -2224,7 +2316,7 @@ export default function App() {
                       const objectUrl = window.URL.createObjectURL(blob);
                       const a = document.createElement('a');
                       a.href = objectUrl;
-                      a.download = `Katalog_${shareProductData.product.sku}.jpg`;
+                      a.download = `${shareProductData.product.sku}.jpg`;
                       document.body.appendChild(a);
                       a.click();
                       document.body.removeChild(a);
@@ -2272,7 +2364,7 @@ export default function App() {
                       const objectUrl = window.URL.createObjectURL(blob);
                       const a = document.createElement('a');
                       a.href = objectUrl;
-                      a.download = `Katalog_${shareProductData.product.sku}.jpg`;
+                      a.download = `${shareProductData.product.sku}.jpg`;
                       document.body.appendChild(a);
                       a.click();
                       document.body.removeChild(a);
