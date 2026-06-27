@@ -745,7 +745,7 @@ export default function App() {
     document.body.removeChild(textArea);
   };
 
-  const generatePDF = async (customFilename?: string) => {
+  const generatePDF = async (customFilename?: string | any) => {
     if (catalogCart.length === 0) {
       showToast("Pilih minimal 1 produk ke keranjang PDF terlebih dahulu.", "error");
       return;
@@ -757,7 +757,7 @@ export default function App() {
       return;
     }
 
-    if (!customFilename) {
+    if (typeof customFilename !== 'string' || !customFilename.trim()) {
       const dateStr = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
       setPdfCustomName(`Katalog_GlobalMart_${dateStr}`);
       setPdfNameModalOpen(true);
@@ -958,6 +958,9 @@ export default function App() {
       drawTemplate();
 
       for (let i = 0; i < targetProducts.length; i++) {
+        const progressPercent = Math.round((i / targetProducts.length) * 100);
+        setLoadingText(`Memproses produk ${i + 1} dari ${targetProducts.length} (${progressPercent}%)...`);
+
         const p = targetProducts[i];
         const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
         
@@ -1059,6 +1062,8 @@ export default function App() {
           console.error("Gagal menggambar card produk:", p.sku, cardErr);
         }
       }
+
+      setLoadingText("Menyimpan file PDF (100%)...");
 
       // Selalu gunakan doc.save() agar jsPDF menangani download asli secara optimal di PC maupun Mobile.
       let finalName = customFilename.trim();
