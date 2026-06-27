@@ -32,7 +32,9 @@ import {
   AlertTriangle,
   AlertCircle,
   Upload,
-  Check
+  Check,
+  Share2,
+  Copy
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -140,6 +142,12 @@ export default function App() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxProduct, setLightboxProduct] = useState<Product | null>(null);
+  const [shareProductData, setShareProductData] = useState<{
+    product: Product;
+    imgUrl: string;
+    shareText: string;
+  } | null>(null);
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -521,6 +529,68 @@ export default function App() {
     const nextList = Array.from(new Set([...catalogCart, ...filteredIds]));
     setCatalogCart(nextList);
     showToast(`${filteredIds.length} produk terpilih ke PDF`, "success");
+  };
+
+  const handleShareProduct = async (
+    product: Product,
+    imgUrl: string,
+    tier: 'eceran' | 'grosir' | 'partai' | 'custom',
+    customPrice?: number
+  ) => {
+    const activePrice = tier === 'eceran' ? product.harga.eceran
+                      : tier === 'grosir' ? product.harga.grosir
+                      : tier === 'partai' ? product.harga.partai
+                      : (customPrice || 0);
+    const priceStr = formatRupiah(activePrice);
+    
+    // WhatsApp formatted text with bold styling
+    const shareText = `🛍️ *${product.nama}*\n📌 *SKU:* ${product.sku}\n💰 *Harga:* ${priceStr}\n\nGlobal Mart - Alat Tulis Kantor & Sekolah`;
+
+    if (navigator.share) {
+      try {
+        // Coba download gambarnya dulu agar bisa di-share sebagai file (sangat optimal di WhatsApp / Instagram)
+        const response = await fetch(imgUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `Katalog_${product.sku}.jpg`, { type: 'image/jpeg' });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: product.nama,
+            text: `Katalog ${product.nama} - SKU: ${product.sku}. Harga: ${priceStr}`,
+          });
+          showToast("Berhasil membagikan katalog!", "success");
+          return;
+        }
+      } catch (shareFileError) {
+        console.warn("Gagal share file gambar, mencoba share text+URL:", shareFileError);
+      }
+
+      try {
+        // Fallback share teks + URL gambar
+        await navigator.share({
+          title: product.nama,
+          text: shareText,
+          url: imgUrl,
+        });
+        showToast("Berhasil membagikan katalog!", "success");
+        return;
+      } catch (shareTextError) {
+        // Jika user mencancel share, abaikan saja
+        if ((shareTextError as Error).name === 'AbortError') {
+          return;
+        }
+        console.warn("Gagal navigator.share:", shareTextError);
+      }
+    }
+
+    // Jika Web Share API tidak didukung atau dibatalkan karena hal lain, 
+    // tampilkan modal fallback buatan kita yang sangat interaktif dan lengkap.
+    setShareProductData({
+      product,
+      imgUrl,
+      shareText,
+    });
   };
 
   // History Actions
@@ -1556,7 +1626,10 @@ export default function App() {
                         
                         <div
                           className="relative aspect-square bg-gray-50 flex items-center justify-center p-2 cursor-zoom-in"
-                          onClick={() => setLightboxUrl(imgUrl)}
+                          onClick={() => {
+                            setLightboxUrl(imgUrl);
+                            setLightboxProduct(p);
+                          }}
                           title="Klik untuk memperbesar gambar"
                         >
                           {isNew && (
@@ -1628,36 +1701,45 @@ export default function App() {
                               <span>{isSelected ? 'Hapus Pilihan' : 'Pilih ke PDF'}</span>
                             </button>
 
-                            <button
-                              onClick={async () => {
-                                showToast("Sedang memproses gambar...", "success");
-                                try {
-                                  const response = await fetch(imgUrl);
-                                  const blob = await response.blob();
-                                  const objectUrl = window.URL.createObjectURL(blob);
-                                  
-                                  const a = document.createElement('a');
-                                  a.href = objectUrl;
-                                  a.download = `Katalog_${p.sku}.jpg`;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  document.body.removeChild(a);
-                                  
-                                  if (isInIframe) {
-                                    showToast("Gambar diunduh! Jika tidak tersimpan otomatis, silakan klik ikon 'Buka di Tab Baru' di kanan atas.", "success");
-                                  } else {
-                                    showToast("Gambar berhasil diunduh!", "success");
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button
+                                onClick={async () => {
+                                  showToast("Sedang memproses gambar...", "success");
+                                  try {
+                                    const response = await fetch(imgUrl);
+                                    const blob = await response.blob();
+                                    const objectUrl = window.URL.createObjectURL(blob);
+                                    
+                                    const a = document.createElement('a');
+                                    a.href = objectUrl;
+                                    a.download = `Katalog_${p.sku}.jpg`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    
+                                    if (isInIframe) {
+                                      showToast("Gambar diunduh! Jika tidak tersimpan otomatis, silakan klik ikon 'Buka di Tab Baru' di kanan atas.", "success");
+                                    } else {
+                                      showToast("Gambar berhasil diunduh!", "success");
+                                    }
+                                    setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+                                  } catch (err) {
+                                    console.error("Gagal download:", err);
+                                    showToast("Gagal mendownload gambar. Coba lagi nanti.", "error");
                                   }
-                                  setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
-                                } catch (err) {
-                                  console.error("Gagal download:", err);
-                                  showToast("Gagal mendownload gambar. Coba lagi nanti.", "error");
-                                }
-                              }}
-                              className="w-full py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-lg flex justify-center items-center gap-1.5 font-semibold text-xs transition-colors active-tap shadow-sm cursor-pointer"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Download JPG
-                            </button>
+                                }}
+                                className="py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-lg flex justify-center items-center gap-1 font-semibold text-xs transition-colors active-tap shadow-sm cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5" /> Download
+                              </button>
+
+                              <button
+                                onClick={() => handleShareProduct(p, imgUrl, activeTier, activeCustomPrice)}
+                                className="py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg flex justify-center items-center gap-1 font-semibold text-xs transition-colors active-tap shadow-sm cursor-pointer"
+                              >
+                                <Share2 className="w-3.5 h-3.5" /> Bagikan
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1948,18 +2030,86 @@ export default function App() {
       {/* LIGHTBOX MODAL */}
       {lightboxUrl && (
         <div
-          className="fixed inset-0 z-[99999] bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300 animate-fadeIn"
-          onClick={() => setLightboxUrl(null)}
+          className="fixed inset-0 z-[99999] bg-black/95 flex flex-col justify-between p-4 backdrop-blur-sm transition-opacity duration-300 animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setLightboxUrl(null);
+              setLightboxProduct(null);
+            }
+          }}
         >
-          <button className="absolute top-4 right-4 bg-white/10 hover:bg-white/30 text-white rounded-full p-2.5 transition-colors active-tap cursor-pointer">
-            <X className="w-6 h-6" />
-          </button>
-          <div className="relative max-w-4xl w-full h-full flex flex-col items-center justify-center p-4">
+          {/* Header */}
+          <div className="flex justify-between items-center w-full max-w-4xl mx-auto text-white py-2 z-10">
+            <div className="flex flex-col">
+              <span className="text-sm font-bold truncate max-w-[200px] md:max-w-[400px]">
+                {lightboxProduct ? lightboxProduct.nama : 'Pratinjau Gambar'}
+              </span>
+              <span className="text-xs text-gray-400">
+                {lightboxProduct ? `SKU: ${lightboxProduct.sku}` : ''}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setLightboxUrl(null);
+                setLightboxProduct(null);
+              }}
+              className="bg-white/10 hover:bg-white/25 text-white rounded-full p-2.5 transition-colors active-tap cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Image Container */}
+          <div className="flex-1 max-w-4xl w-full mx-auto flex items-center justify-center p-2">
             <img
               src={lightboxUrl}
               alt="Katalog Full Size"
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl z-10 transition-transform transform scale-100 duration-300"
+              className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl z-10 transition-transform duration-300"
             />
+          </div>
+
+          {/* Action Bar */}
+          <div className="w-full max-w-md mx-auto bg-gray-900/90 backdrop-blur-md rounded-2xl border border-gray-800 p-4 flex gap-3 justify-center z-10 shadow-2xl mb-4">
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!lightboxProduct) return;
+                showToast("Sedang mengunduh gambar...", "success");
+                try {
+                  const response = await fetch(lightboxUrl);
+                  const blob = await response.blob();
+                  const objectUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = objectUrl;
+                  a.download = `Katalog_${lightboxProduct.sku}.jpg`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+                  showToast("Gambar berhasil diunduh!", "success");
+                } catch (err) {
+                  console.error(err);
+                  showToast("Gagal mengunduh gambar", "error");
+                }
+              }}
+              className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all border border-white/10 active-tap cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Download JPG
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (lightboxProduct) {
+                  const activeTier = catalogTiers[lightboxProduct.id] || globalPriceTier;
+                  const activeCustomPrice = catalogCustomPrices[lightboxProduct.id] || 0;
+                  handleShareProduct(lightboxProduct, lightboxUrl, activeTier, activeCustomPrice);
+                }
+              }}
+              className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2 font-extrabold text-xs transition-all active-tap shadow-lg shadow-blue-500/20 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4" /> Bagikan Gambar
+            </button>
           </div>
         </div>
       )}
@@ -2006,6 +2156,130 @@ export default function App() {
           showToast("Berhasil ditambahkan ke keranjang!", "success");
         }}
       />
+
+      {/* Custom Share Modal */}
+      {shareProductData && (
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-gray-900/70 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[92vh] border border-gray-100 animate-slideUp">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                <div className="bg-blue-100 text-blue-600 p-1.5 rounded-lg">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                Bagikan Produk
+              </h3>
+              <button
+                onClick={() => setShareProductData(null)}
+                className="text-gray-400 hover:text-gray-600 p-2 rounded-full transition-colors active-tap cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 custom-scrollbar">
+              
+              {/* Product Info Card */}
+              <div className="bg-gray-50 rounded-2xl p-4 flex gap-4 border border-gray-200">
+                <img
+                  src={shareProductData.imgUrl}
+                  alt={shareProductData.product.nama}
+                  className="w-16 h-16 object-contain rounded-xl bg-white border border-gray-100 p-1 shadow-sm"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/f8fafc/94a3b8?text=Gambar';
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-gray-800 line-clamp-2 leading-tight">
+                    {shareProductData.product.nama}
+                  </h4>
+                  <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-wide">
+                    SKU: {shareProductData.product.sku}
+                  </p>
+                </div>
+              </div>
+
+              {/* Share Options */}
+              <div className="space-y-3">
+                
+                {/* 1. Share via WhatsApp status or chat */}
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareProductData.shareText + "\n" + shareProductData.imgUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-100 transition-all text-left w-full cursor-pointer group active-tap"
+                >
+                  <div className="bg-emerald-500 text-white p-3 rounded-xl shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+                    {/* SVG WhatsApp Icon */}
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.265 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.388 2.008 13.916.989 11.996.989c-5.442 0-9.87 4.372-9.874 9.802-.001 1.968.514 3.89 1.493 5.582l-.978 3.57 3.677-.954zm13.013-11.37c-.36-.18-.2.13-1.54-.542-.36-.18-.62-.27-.88-.27-.26 0-.68.1-.96.38-.28.3-.96.94-.96 2.3s1 2.67 1.14 2.85c.14.18 1.96 3 4.74 4.2 2.78 1.2 2.78.8 3.28.75.5-.05 1.62-.66 1.85-1.3.23-.64.23-1.18.16-1.3-.07-.1-.26-.18-.62-.36z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <span className="block text-xs font-bold text-gray-800">WhatsApp (Chat & Status)</span>
+                    <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">Kirim deskripsi teks tebal beserta tautan foto langsung ke WA Anda.</span>
+                  </div>
+                </a>
+
+                {/* 2. Instagram (Feed or Stories instructions) */}
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(shareProductData.shareText);
+                      showToast("Caption disalin! Silakan unduh gambar dan pasang ke Instagram Anda.", "success");
+                    } catch (e) {
+                      showToast("Gagal menyalin teks", "error");
+                    }
+                  }}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-purple-50 hover:bg-purple-100/80 border border-purple-100 transition-all text-left w-full cursor-pointer group active-tap"
+                >
+                  <div className="bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 text-white p-3 rounded-xl shadow-md shadow-pink-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+                    {/* Instagram Custom Icon */}
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <span className="block text-xs font-bold text-gray-800">Bagikan ke Instagram</span>
+                    <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">Salin deskripsi otomatis. Setelah itu unduh foto & tempel caption di Feed/Status IG Anda.</span>
+                  </div>
+                </button>
+
+                {/* 3. Copy Text */}
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(`${shareProductData.shareText}\n${shareProductData.imgUrl}`);
+                      showToast("Teks & Link Gambar disalin!", "success");
+                    } catch (e) {
+                      showToast("Gagal menyalin", "error");
+                    }
+                  }}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all text-left w-full cursor-pointer group active-tap"
+                >
+                  <div className="bg-gray-500 text-white p-3 rounded-xl shadow-md shadow-gray-500/10 group-hover:scale-105 transition-transform flex items-center justify-center">
+                    <Copy className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="block text-xs font-bold text-gray-800">Salin Teks & Link</span>
+                    <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">Salin detail produk lengkap serta link foto ke clipboard.</span>
+                  </div>
+                </button>
+
+              </div>
+
+              {/* Instagram/WhatsApp Help Note */}
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-[10px] text-blue-700 font-medium leading-relaxed">
+                💡 <b>Tips Bagikan ke Status / Feed:</b><br/>
+                Klik tombol <b>Bagikan ke Instagram</b> untuk menyalin deskripsi tebal, pastikan Anda juga sudah mendownload gambar produknya untuk di-post secara bersamaan di handphone Anda!
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
