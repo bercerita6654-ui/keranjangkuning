@@ -649,9 +649,14 @@ export default function App() {
     try {
       let templateBgBase64: string | null = null;
       try {
-        templateBgBase64 = await loadImageBase64('/Katalog Produk.jpg');
+        templateBgBase64 = await loadImageBase64('https://lh3.googleusercontent.com/d/1snbWuLd5T2u1YAtvpX9Sc_kcR2FMItt2');
       } catch (e) {
-        console.warn("Gagal meload template Katalog Produk.jpg. Melanjutkan tanpa background.");
+        console.warn("Gagal meload template dari Google Drive. Mencoba file lokal...");
+        try {
+          templateBgBase64 = await loadImageBase64('/Katalog Produk.jpg');
+        } catch (localError) {
+          console.warn("Gagal meload template Katalog Produk.jpg. Melanjutkan dengan background vektor.");
+        }
       }
 
       const doc = new jsPDF({
@@ -703,25 +708,129 @@ export default function App() {
         if (templateBgBase64) {
           doc.addImage(templateBgBase64, 'JPEG', 0, 0, pageWidth, pageHeight);
         } else {
+          // 1. White Page Background
           doc.setFillColor(255, 255, 255);
           doc.rect(0, 0, pageWidth, pageHeight, 'F');
           
-          doc.setFillColor(248, 250, 252);
-          doc.rect(0, 0, pageWidth, 28, 'F');
+          // 2. Deep Blue Header Bar
+          doc.setFillColor(12, 76, 163);
+          doc.rect(0, 0, pageWidth, 16, 'F');
+          
+          // 3. Spaced "K A T A L O G   P R O D U K" Text
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(19);
+          doc.setTextColor(255, 255, 255);
+          doc.text("K A T A L O G   P R O D U K", 135, 11.5, { align: "center" });
+          
+          // 4. Yellow Badge on Left
+          doc.setFillColor(255, 224, 0);
+          doc.roundedRect(0, 0, 55, 17, 3, 3, 'F');
+          doc.rect(0, 0, 52, 14, 'F'); // keep top-left sharp
+          
+          // Mascot Logo drawing (cute stylized book/pencil icon)
+          doc.setFillColor(220, 20, 60); // red bag/book
+          doc.rect(4, 3.5, 5, 6, 'F');
+          doc.setFillColor(255, 255, 255);
+          doc.rect(5, 4.5, 3, 4, 'F');
+          doc.setFillColor(220, 20, 60);
+          doc.rect(6, 5.5, 1, 2, 'F');
+          // small yellow accent pencil
+          doc.setFillColor(255, 224, 0);
+          doc.rect(10, 4.5, 1.5, 4, 'F');
+          
+          // Global Mart Title Texts
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.setTextColor(220, 20, 60); // Red
+          doc.text("GLOBAL MART", 12.5, 8.5);
           
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(16);
-          doc.setTextColor(15, 23, 42);
-          doc.text("KATALOG PRODUK", 12, 18);
+          doc.setFontSize(4.2);
+          doc.setTextColor(12, 76, 163); // Blue
+          doc.text("ALAT TULIS KANTOR & SEKOLAH", 12.5, 12.5);
           
-          doc.setFont("helvetica", "normal");
+          // 5. Footer Layout (Height = 19mm, starts at y = 278)
+          const footerY = 278;
+          
+          // Yellow Footer Part (width = 135)
+          doc.setFillColor(255, 224, 0);
+          doc.rect(0, footerY, 135, 19, 'F');
+          
+          // Blue Footer Part (width = 75)
+          doc.setFillColor(12, 76, 163);
+          doc.rect(135, footerY, 75, 19, 'F');
+          
+          // Yellow Footer Content (3 Columns)
+          const col1X = 22.5;
+          const col2X = 67.5;
+          const col3X = 112.5;
+          
+          // Column 1: Produk Original
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.6);
+          doc.circle(col1X - 15, footerY + 9.5, 2.5);
+          doc.line(col1X - 16.2, footerY + 9.5, col1X - 15, footerY + 10.7);
+          doc.line(col1X - 15, footerY + 10.7, col1X - 13.5, footerY + 8);
+          
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          doc.text("PRODUK\nORIGINAL", col1X - 10, footerY + 8);
+          
+          // Column 2: Harga Bersahabat
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.6);
+          doc.line(col2X - 17, footerY + 11, col2X - 14, footerY + 8);
+          doc.line(col2X - 14, footerY + 8, col2X - 11, footerY + 11);
+          doc.line(col2X - 11, footerY + 11, col2X - 14, footerY + 14);
+          doc.line(col2X - 14, footerY + 14, col2X - 17, footerY + 11);
+          doc.circle(col2X - 14.5, footerY + 10.5, 0.4, 'F');
+          
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          doc.text("HARGA\nBERSAHABAT", col2X - 9, footerY + 8);
+          
+          // Column 3: Lengkap & Terpercaya
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.6);
+          doc.line(col3X - 17, footerY + 9, col3X - 17, footerY + 13);
+          doc.line(col3X - 17, footerY + 13, col3X - 13, footerY + 13);
+          doc.line(col3X - 13, footerY + 13, col3X - 12, footerY + 10);
+          doc.line(col3X - 12, footerY + 10, col3X - 14, footerY + 10);
+          doc.line(col3X - 14, footerY + 10, col3X - 14, footerY + 6);
+          doc.line(col3X - 14, footerY + 6, col3X - 16, footerY + 6);
+          doc.line(col3X - 16, footerY + 6, col3X - 16, footerY + 9);
+          doc.line(col3X - 16, footerY + 9, col3X - 17, footerY + 9);
+          
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          doc.text("LENGKAP\n& TERPERCAYA", col3X - 9, footerY + 8);
+          
+          // Blue Footer Content
+          doc.setFont("helvetica", "bolditalic");
+          doc.setFontSize(13.5);
+          doc.setTextColor(255, 255, 255);
+          doc.text("#PASTILEBIHPUAS", 172.5, footerY + 6.5, { align: "center" });
+          
+          // Social circles and text
+          doc.setFillColor(255, 255, 255);
+          doc.circle(146, footerY + 13, 1.8, 'F');
+          doc.circle(151.5, footerY + 13, 1.8, 'F');
+          doc.circle(157, footerY + 13, 1.8, 'F');
+          
+          doc.setTextColor(12, 76, 163);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(4.5);
+          doc.text("d", 146, footerY + 14.2, { align: "center" });
+          doc.text("f", 151.5, footerY + 14.2, { align: "center" });
+          doc.text("i", 157, footerY + 14.2, { align: "center" });
+          
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
           doc.setFontSize(9);
-          doc.setTextColor(100, 116, 139);
-          doc.text("Keranjang Kuning - Pemesanan Mudah & Cepat", 12, 23);
-          
-          doc.setDrawColor(226, 232, 240);
-          doc.setLineWidth(0.5);
-          doc.line(12, 28, pageWidth - 12, 28);
+          doc.text("globalmart.id", 182, footerY + 13.7, { align: "center" });
         }
       };
 
