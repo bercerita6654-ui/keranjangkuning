@@ -546,7 +546,7 @@ export default function App() {
     // WhatsApp formatted text with bold styling
     const shareText = `🛍️ *${product.nama}*\n📌 *SKU:* ${product.sku}\n💰 *Harga:* ${priceStr}\n\nGlobal Mart - Alat Tulis Kantor & Sekolah`;
 
-    if (navigator.share) {
+    if (navigator.share && !isInIframe) {
       try {
         // Coba download gambarnya dulu agar bisa di-share sebagai file (sangat optimal di WhatsApp / Instagram)
         const response = await fetch(imgUrl);
@@ -557,12 +557,15 @@ export default function App() {
           await navigator.share({
             files: [file],
             title: product.nama,
-            text: `Katalog ${product.nama} - SKU: ${product.sku}. Harga: ${priceStr}`,
+            text: shareText,
           });
           showToast("Berhasil membagikan katalog!", "success");
           return;
         }
       } catch (shareFileError) {
+        if ((shareFileError as Error).name === 'AbortError') {
+          return; // User cancelled, do not open fallback
+        }
         console.warn("Gagal share file gambar, mencoba share text+URL:", shareFileError);
       }
 
@@ -584,7 +587,7 @@ export default function App() {
       }
     }
 
-    // Jika Web Share API tidak didukung atau dibatalkan karena hal lain, 
+    // Jika Web Share API tidak didukung, dibatalkan karena hal lain, atau sedang di dalam iframe:
     // tampilkan modal fallback buatan kita yang sangat interaktif dan lengkap.
     setShareProductData({
       product,
@@ -2205,10 +2208,39 @@ export default function App() {
               <div className="space-y-3">
                 
                 {/* 1. Share via WhatsApp status or chat */}
-                <a
-                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareProductData.shareText + "\n" + shareProductData.imgUrl)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={async () => {
+                    // 1. Salin Teks ke Clipboard
+                    try {
+                      await navigator.clipboard.writeText(shareProductData.shareText);
+                    } catch (e) {
+                      console.warn(e);
+                    }
+                    
+                    // 2. Download Gambar otomatis ke galeri
+                    try {
+                      const response = await fetch(shareProductData.imgUrl);
+                      const blob = await response.blob();
+                      const objectUrl = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = objectUrl;
+                      a.download = `Katalog_${shareProductData.product.sku}.jpg`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+                    } catch (err) {
+                      console.error("Gagal download:", err);
+                    }
+
+                    showToast("Gambar terunduh & teks disalin! Membuka WhatsApp...", "success");
+                    
+                    // 3. Buka WhatsApp
+                    setTimeout(() => {
+                      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareProductData.shareText + "\n" + shareProductData.imgUrl)}`;
+                      window.open(waUrl, '_blank');
+                    }, 800);
+                  }}
                   className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-100 transition-all text-left w-full cursor-pointer group active-tap"
                 >
                   <div className="bg-emerald-500 text-white p-3 rounded-xl shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
@@ -2219,19 +2251,42 @@ export default function App() {
                   </div>
                   <div className="flex-1">
                     <span className="block text-xs font-bold text-gray-800">WhatsApp (Chat & Status)</span>
-                    <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">Kirim deskripsi teks tebal beserta tautan foto langsung ke WA Anda.</span>
+                    <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">Otomatis download gambar ke galeri, salin teks harga, dan buka WhatsApp.</span>
                   </div>
-                </a>
+                </button>
 
                 {/* 2. Instagram (Feed or Stories instructions) */}
                 <button
                   onClick={async () => {
+                    // 1. Salin Teks ke Clipboard
                     try {
                       await navigator.clipboard.writeText(shareProductData.shareText);
-                      showToast("Caption disalin! Silakan unduh gambar dan pasang ke Instagram Anda.", "success");
                     } catch (e) {
-                      showToast("Gagal menyalin teks", "error");
+                      console.warn(e);
                     }
+                    
+                    // 2. Download Gambar otomatis ke galeri
+                    try {
+                      const response = await fetch(shareProductData.imgUrl);
+                      const blob = await response.blob();
+                      const objectUrl = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = objectUrl;
+                      a.download = `Katalog_${shareProductData.product.sku}.jpg`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+                    } catch (err) {
+                      console.error("Gagal download:", err);
+                    }
+
+                    showToast("Gambar terunduh & caption disalin! Membuka Instagram...", "success");
+                    
+                    // 3. Buka Instagram
+                    setTimeout(() => {
+                      window.open('https://www.instagram.com/', '_blank');
+                    }, 800);
                   }}
                   className="flex items-center gap-4 p-4 rounded-2xl bg-purple-50 hover:bg-purple-100/80 border border-purple-100 transition-all text-left w-full cursor-pointer group active-tap"
                 >
@@ -2243,7 +2298,7 @@ export default function App() {
                   </div>
                   <div className="flex-1">
                     <span className="block text-xs font-bold text-gray-800">Bagikan ke Instagram</span>
-                    <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">Salin deskripsi otomatis. Setelah itu unduh foto & tempel caption di Feed/Status IG Anda.</span>
+                    <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">Otomatis download gambar ke galeri, salin caption, dan buka Instagram.</span>
                   </div>
                 </button>
 
@@ -2272,8 +2327,8 @@ export default function App() {
 
               {/* Instagram/WhatsApp Help Note */}
               <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-[10px] text-blue-700 font-medium leading-relaxed">
-                💡 <b>Tips Bagikan ke Status / Feed:</b><br/>
-                Klik tombol <b>Bagikan ke Instagram</b> untuk menyalin deskripsi tebal, pastikan Anda juga sudah mendownload gambar produknya untuk di-post secara bersamaan di handphone Anda!
+                💡 <b>Cara Mudah Membuat Status / Postingan:</b><br/>
+                Cukup klik opsi <b>WhatsApp</b> atau <b>Instagram</b> di atas. Gambar produk otomatis tersimpan ke folder Download/Galeri HP Anda dan teks deskripsi harganya disalin. Setelah aplikasi terbuka, pilih buat postingan, pilih gambar teratas di galeri Anda, lalu <b>tempel (paste)</b> caption-nya!
               </div>
 
             </div>
