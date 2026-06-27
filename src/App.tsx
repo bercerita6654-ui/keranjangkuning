@@ -144,6 +144,7 @@ export default function App() {
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
 
   // Load Initial Data & History
   useEffect(() => {
@@ -154,6 +155,12 @@ export default function App() {
       if (stored) setHistory(JSON.parse(stored));
     } catch (e) {
       console.error(e);
+    }
+    // Check if running in iframe
+    try {
+      setIsInIframe(window.self !== window.top);
+    } catch (e) {
+      setIsInIframe(true);
     }
   }, []);
 
@@ -913,15 +920,14 @@ export default function App() {
         }
       }
 
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        const blobPdf = doc.output('blob');
-        const blobUrl = URL.createObjectURL(blobPdf);
-        window.open(blobUrl, '_blank');
+      // Selalu gunakan doc.save() agar jsPDF menangani download asli secara optimal di PC maupun Mobile.
+      doc.save(`Katalog_${windowCatalogSource.toUpperCase()}_${new Date().getTime()}.pdf`);
+      
+      if (isInIframe) {
+        showToast("PDF siap! Jika tidak terdownload otomatis, silakan klik ikon 'Buka di Tab Baru' di kanan atas layar.", "success");
       } else {
-        doc.save(`Katalog_${windowCatalogSource.toUpperCase()}_${new Date().getTime()}.pdf`);
+        showToast("PDF Katalog berhasil diunduh!", "success");
       }
-      showToast("PDF Katalog berhasil diproses!", "success");
 
     } catch (err) {
       console.error("PDF Error:", err);
@@ -934,6 +940,16 @@ export default function App() {
   return (
     <div className="bg-[#f8fafc] text-gray-800 font-sans min-h-screen pb-32 lg:pb-8 relative">
       
+      {/* Iframe warning banner */}
+      {isInIframe && (
+        <div className="bg-amber-500 text-white px-4 py-2.5 text-center text-xs md:text-sm font-bold flex flex-wrap items-center justify-center gap-2 shadow-md relative z-[100] animate-fadeIn">
+          <span>⚠️ <b>Perhatian (Mode Preview IFrame):</b> Download file di handphone dibatasi oleh browser di dalam frame ini.</span>
+          <span className="underline bg-amber-600 px-2 py-0.5 rounded text-white">
+            Silakan klik ikon "Buka di Tab Baru" di kanan atas layar Anda
+          </span>
+        </div>
+      )}
+
       {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex items-center justify-center">
@@ -1615,17 +1631,17 @@ export default function App() {
                                   const blob = await response.blob();
                                   const objectUrl = window.URL.createObjectURL(blob);
                                   
-                                  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                                  if (isMobile) {
-                                    window.open(objectUrl, '_blank');
-                                    showToast("Gambar dibuka di tab baru untuk disimpan.", "success");
+                                  const a = document.createElement('a');
+                                  a.href = objectUrl;
+                                  a.download = `Katalog_${p.sku}.jpg`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  
+                                  if (isInIframe) {
+                                    showToast("Gambar diunduh! Jika tidak tersimpan otomatis, silakan klik ikon 'Buka di Tab Baru' di kanan atas.", "success");
                                   } else {
-                                    const a = document.createElement('a');
-                                    a.href = objectUrl;
-                                    a.download = `Katalog_${p.sku}.jpg`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
+                                    showToast("Gambar berhasil diunduh!", "success");
                                   }
                                   setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
                                 } catch (err) {
