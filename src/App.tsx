@@ -68,15 +68,19 @@ const loadImageBase64 = (url: string): Promise<string> => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      } else {
-        reject(new Error("Gagal membuat 2D context"));
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } else {
+          reject(new Error("Gagal membuat 2D context"));
+        }
+      } catch (err) {
+        reject(err);
       }
     };
     img.onerror = (err) => reject(err);
@@ -957,78 +961,102 @@ export default function App() {
         const p = targetProducts[i];
         const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
         
+        let imgB64: string | null = null;
         if (imgId && imgId !== '-') {
           try {
             // Menggunakan ukuran =w800 untuk PDF agar proses kompilasi PDF 10x lebih cepat & anti-crash di HP, 
             // dengan kualitas cetak gambar yang tetap sangat tajam.
-            const imgB64 = await loadImageBase64(`https://lh3.googleusercontent.com/d/${imgId}=w800`);
-            
-            doc.setDrawColor(15, 85, 200); 
-            doc.setLineWidth(0.8);
-            doc.rect(currentX, currentY, cellWidth, imageBoxHeight);
-            
-            const pad = 1;
-            doc.addImage(imgB64, 'JPEG', currentX + pad, currentY + pad, cellWidth - (pad*2), imageBoxHeight - (pad*2));
-            
-            doc.setFontSize(cols <= 2 ? 10 : (cols <= 4 ? 8 : 6));
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(0, 0, 0);
-            
-            const fullTextName = `[${p.sku}] ${p.nama}`;
-            const splitText = doc.splitTextToSize(fullTextName, cellWidth) as string[];
-            
-            const maxLines = windowCatalogSource === 'foto' ? 4 : 2;
-            let textToPrint = splitText.slice(0, maxLines);
-            if (splitText.length > maxLines) {
-              textToPrint[maxLines - 1] = textToPrint[maxLines - 1].substring(0, textToPrint[maxLines - 1].length - 3) + '...';
-            }
-
-            const textStartY = currentY + imageBoxHeight + (cols <= 4 ? 4 : 3);
-            doc.text(textToPrint, currentX, textStartY);
-
-            const lineHeightPx = doc.getLineHeight() * 0.3527; 
-            const priceStartY = textStartY + (textToPrint.length * lineHeightPx) + 0.5;
-
-            if (pdfPrice !== 'none') {
-              doc.setFontSize(cols <= 2 ? 9 : (cols <= 4 ? 8 : 6));
-              doc.setFont("helvetica", "normal");
-              doc.setTextColor(180, 40, 40); 
-              
-              let priceVal = 0;
-              if (pdfPrice === 'active') {
-                const activeTier = catalogTiers[p.id] || globalPriceTier;
-                priceVal = activeTier === 'custom' ? (catalogCustomPrices[p.id] || 0) : p.harga[activeTier];
-              } else {
-                priceVal = p.harga[pdfPrice as 'eceran' | 'grosir' | 'partai'] || 0;
-              }
-              
-              doc.text(`Rp ${formatNumber(priceVal)} /${p.unit.toUpperCase()}`, currentX + 1, priceStartY);
-            }
-            
-            currentCol++;
-            if (currentCol >= cols) {
-              currentCol = 0;
-              currentRow++;
-              currentX = marginSide;
-              currentY += cellHeight + spacingY;
-            } else {
-              currentX += cellWidth + spacingX;
-            }
-
-            if (currentRow >= rows) {
-              if (i < targetProducts.length - 1) {
-                doc.addPage();
-                drawTemplate(); 
-                currentX = marginSide;
-                currentY = marginTop;
-                currentCol = 0;
-                currentRow = 0;
-              }
-            }
-
+            imgB64 = await loadImageBase64(`https://lh3.googleusercontent.com/d/${imgId}=w800`);
           } catch (err) {
-            console.warn("Melewati gambar karena gagal diload:", p.sku);
+            console.warn(`Gagal meload gambar produk ${p.sku}:`, err);
           }
+        }
+
+        try {
+          doc.setDrawColor(15, 85, 200); 
+          doc.setLineWidth(0.8);
+          doc.rect(currentX, currentY, cellWidth, imageBoxHeight);
+          
+          const pad = 1;
+          if (imgB64) {
+            try {
+              doc.addImage(imgB64, 'JPEG', currentX + pad, currentY + pad, cellWidth - (pad * 2), imageBoxHeight - (pad * 2));
+            } catch (addImgErr) {
+              console.warn("Gagal menggambar image ke canvas PDF, menggunakan placeholder:", p.sku, addImgErr);
+              imgB64 = null; // fallback to placeholder drawing below
+            }
+          }
+          
+          if (!imgB64) {
+            // Gambar placeholder abu-abu jika gambar tidak ada atau gagal dimuat
+            doc.setFillColor(245, 247, 250);
+            doc.rect(currentX + pad, currentY + pad, cellWidth - (pad * 2), imageBoxHeight - (pad * 2), 'F');
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(cols <= 2 ? 10 : (cols <= 4 ? 7 : 5));
+            doc.setTextColor(150, 150, 150);
+            doc.text("No Image", currentX + (cellWidth / 2), currentY + (imageBoxHeight / 2), { align: "center" });
+          }
+          
+          doc.setFontSize(cols <= 2 ? 10 : (cols <= 4 ? 8 : 6));
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(0, 0, 0);
+          
+          const fullTextName = `[${p.sku}] ${p.nama}`;
+          const splitText = doc.splitTextToSize(fullTextName, cellWidth) as string[];
+          
+          const maxLines = windowCatalogSource === 'foto' ? 4 : 2;
+          let textToPrint = splitText.slice(0, maxLines);
+          if (splitText.length > maxLines) {
+            textToPrint[maxLines - 1] = textToPrint[maxLines - 1].substring(0, textToPrint[maxLines - 1].length - 3) + '...';
+          }
+
+          const textStartY = currentY + imageBoxHeight + (cols <= 4 ? 4 : 3);
+          doc.text(textToPrint, currentX, textStartY);
+
+          const lineHeightPx = doc.getLineHeight() * 0.3527; 
+          const priceStartY = textStartY + (textToPrint.length * lineHeightPx) + 0.5;
+
+          if (pdfPrice !== 'none') {
+            doc.setFontSize(cols <= 2 ? 9 : (cols <= 4 ? 8 : 6));
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(180, 40, 40); 
+            
+            let priceVal = 0;
+            if (pdfPrice === 'active') {
+              const activeTier = catalogTiers[p.id] || globalPriceTier;
+              priceVal = activeTier === 'custom' ? (catalogCustomPrices[p.id] || 0) : (p.harga ? p.harga[activeTier] : 0);
+            } else {
+              priceVal = (p.harga ? p.harga[pdfPrice as 'eceran' | 'grosir' | 'partai'] : 0) || 0;
+            }
+            
+            const unitText = (p.unit || '').toUpperCase();
+            doc.text(`Rp ${formatNumber(priceVal)}${unitText ? ' /' + unitText : ''}`, currentX + 1, priceStartY);
+          }
+          
+          currentCol++;
+          if (currentCol >= cols) {
+            currentCol = 0;
+            currentRow++;
+            currentX = marginSide;
+            currentY += cellHeight + spacingY;
+          } else {
+            currentX += cellWidth + spacingX;
+          }
+
+          if (currentRow >= rows) {
+            if (i < targetProducts.length - 1) {
+              doc.addPage();
+              drawTemplate(); 
+              currentX = marginSide;
+              currentY = marginTop;
+              currentCol = 0;
+              currentRow = 0;
+            }
+          }
+
+        } catch (cardErr) {
+          console.error("Gagal menggambar card produk:", p.sku, cardErr);
         }
       }
 
