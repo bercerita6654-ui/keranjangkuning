@@ -26,6 +26,7 @@ import {
   ShoppingBag,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   BookOpen,
   FileText,
   Printer,
@@ -145,6 +146,8 @@ export default function App() {
   const [currentPageCatalog, setCurrentPageCatalog] = useState(1);
   const [catalogCategories, setCatalogCategories] = useState<string[]>([]);
   const [catalogBrands, setCatalogBrands] = useState<string[]>([]);
+  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
+  const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
   const [windowCatalogSource, setWindowCatalogSource] = useState<'story' | 'foto'>('story');
   const [catalogCart, setCatalogCart] = useState<string[]>([]);
 
@@ -1672,113 +1675,183 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-col gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                  {/* Category Filter */}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                        <span className="w-1.5 h-3 bg-blue-500 rounded-full"></span>
-                        Tag Kategori ({catalogCategories.length} terpilih)
+                <div className="mt-2 flex flex-col sm:flex-row gap-4 relative z-30">
+                  {/* Custom Multi-select Category Dropdown */}
+                  <div className="relative w-full sm:w-1/2">
+                    <label className="block text-[11px] font-extrabold text-gray-500 uppercase tracking-wider mb-1 pl-1">Tag Kategori</label>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCatDropdownOpen(!isCatDropdownOpen);
+                        setIsBrandDropdownOpen(false);
+                      }}
+                      className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3.5 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 flex justify-between items-center transition-all cursor-pointer outline-none shadow-sm font-semibold"
+                    >
+                      <span className="truncate">
+                        {catalogCategories.length === 0
+                          ? 'Semua Kategori (Katalog)'
+                          : catalogCategories.join(', ')}
                       </span>
-                      {catalogCategories.length > 0 && (
-                        <button
-                          onClick={() => { setCatalogCategories([]); setCurrentPageCatalog(1); }}
-                          className="text-[11px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
-                        >
-                          Reset Kategori
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto pr-1">
-                      <button
-                        onClick={() => { setCatalogCategories([]); setCurrentPageCatalog(1); }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          catalogCategories.length === 0
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        Semua Kategori
-                      </button>
-                      {availableCategories.map(cat => {
-                        const isSelected = catalogCategories.includes(cat);
-                        return (
-                          <button
-                            key={cat}
-                            onClick={() => {
-                              if (isSelected) {
-                                setCatalogCategories(prev => prev.filter(c => c !== cat));
-                              } else {
-                                setCatalogCategories(prev => [...prev, cat]);
-                              }
-                              setCurrentPageCatalog(1);
-                            }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                              isSelected
-                                ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3 h-3 text-blue-700 stroke-[3]" />}
-                            {cat}
-                          </button>
-                        );
-                      })}
-                    </div>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isCatDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isCatDropdownOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsCatDropdownOpen(false)}
+                        />
+                        <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto p-2 animate-fadeIn">
+                          <div className="flex justify-between items-center p-1.5 border-b border-gray-100 mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">Pilih Kategori</span>
+                            {catalogCategories.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCatalogCategories([]);
+                                  setCurrentPageCatalog(1);
+                                }}
+                                className="text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCatalogCategories([]);
+                                setCurrentPageCatalog(1);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors ${
+                                catalogCategories.length === 0 
+                                  ? 'bg-blue-50 text-blue-700' 
+                                  : 'hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <span>Semua Kategori</span>
+                              {catalogCategories.length === 0 && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </button>
+                            {availableCategories.map(cat => {
+                              const isSelected = catalogCategories.includes(cat);
+                              return (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setCatalogCategories(prev => prev.filter(c => c !== cat));
+                                    } else {
+                                      setCatalogCategories(prev => [...prev, cat]);
+                                    }
+                                    setCurrentPageCatalog(1);
+                                  }}
+                                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                                    isSelected 
+                                      ? 'bg-blue-50/70 text-blue-700 font-bold' 
+                                      : 'hover:bg-gray-50 text-gray-600'
+                                  }`}
+                                >
+                                  <span className="truncate">{cat}</span>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  {/* Brand Filter */}
-                  <div>
-                    <div className="flex justify-between items-center mb-2 border-t border-gray-100 pt-3">
-                      <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                        <span className="w-1.5 h-3 bg-indigo-500 rounded-full"></span>
-                        Tag Merk ({catalogBrands.length} terpilih)
+                  {/* Custom Multi-select Brand Dropdown */}
+                  <div className="relative w-full sm:w-1/2">
+                    <label className="block text-[11px] font-extrabold text-gray-500 uppercase tracking-wider mb-1 pl-1">Tag Merk</label>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsBrandDropdownOpen(!isBrandDropdownOpen);
+                        setIsCatDropdownOpen(false);
+                      }}
+                      className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3.5 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 flex justify-between items-center transition-all cursor-pointer outline-none shadow-sm font-semibold"
+                    >
+                      <span className="truncate">
+                        {catalogBrands.length === 0
+                          ? 'Semua Merk (Katalog)'
+                          : catalogBrands.join(', ')}
                       </span>
-                      {catalogBrands.length > 0 && (
-                        <button
-                          onClick={() => { setCatalogBrands([]); setCurrentPageCatalog(1); }}
-                          className="text-[11px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
-                        >
-                          Reset Merk
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto pr-1">
-                      <button
-                        onClick={() => { setCatalogBrands([]); setCurrentPageCatalog(1); }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          catalogBrands.length === 0
-                            ? 'bg-indigo-600 text-white shadow-sm'
-                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        Semua Merk
-                      </button>
-                      {availableBrands.map(b => {
-                        const isSelected = catalogBrands.includes(b);
-                        return (
-                          <button
-                            key={b}
-                            onClick={() => {
-                              if (isSelected) {
-                                setCatalogBrands(prev => prev.filter(brand => brand !== b));
-                              } else {
-                                setCatalogBrands(prev => [...prev, b]);
-                              }
-                              setCurrentPageCatalog(1);
-                            }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                              isSelected
-                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3 h-3 text-indigo-700 stroke-[3]" />}
-                            {b}
-                          </button>
-                        );
-                      })}
-                    </div>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isBrandDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isBrandDropdownOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsBrandDropdownOpen(false)}
+                        />
+                        <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto p-2 animate-fadeIn">
+                          <div className="flex justify-between items-center p-1.5 border-b border-gray-100 mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">Pilih Merk</span>
+                            {catalogBrands.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCatalogBrands([]);
+                                  setCurrentPageCatalog(1);
+                                }}
+                                className="text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCatalogBrands([]);
+                                  setCurrentPageCatalog(1);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors ${
+                                catalogBrands.length === 0 
+                                  ? 'bg-indigo-50 text-indigo-700' 
+                                  : 'hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <span>Semua Merk</span>
+                              {catalogBrands.length === 0 && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </button>
+                            {availableBrands.map(b => {
+                              const isSelected = catalogBrands.includes(b);
+                              return (
+                                <button
+                                  key={b}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setCatalogBrands(prev => prev.filter(brand => brand !== b));
+                                    } else {
+                                      setCatalogBrands(prev => [...prev, b]);
+                                    }
+                                    setCurrentPageCatalog(1);
+                                  }}
+                                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                                    isSelected 
+                                      ? 'bg-indigo-50/70 text-indigo-700 font-bold' 
+                                      : 'hover:bg-gray-50 text-gray-600'
+                                  }`}
+                                >
+                                  <span className="truncate">{b}</span>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 stroke-[3]" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1964,25 +2037,28 @@ export default function App() {
                             }
 
                             return (
-                              <div className="mb-2 bg-gray-50/50 p-1.5 rounded-lg border border-gray-100/80 flex flex-col justify-center min-h-[38px]">
+                              <div className="mb-2 bg-red-50/20 p-2 rounded-xl border border-red-100/50 flex flex-col justify-center min-h-[48px]">
                                 {hasPromo ? (
                                   <>
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-[10px] text-gray-400 line-through font-semibold leading-none">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-xs text-gray-400 line-through font-bold leading-none">
                                         {formatRupiah(originalPrice)}
                                       </span>
-                                      <span className="text-[9px] bg-red-500 text-white font-extrabold px-1 rounded leading-none py-0.5 text-[8px]">
+                                      <span className="text-[10px] bg-red-600 text-white font-black px-1.5 py-0.5 rounded leading-none uppercase tracking-wide">
                                         {promoLabel}
                                       </span>
                                     </div>
-                                    <span className="text-sm font-black text-red-600 mt-0.5 animate-pulse">
+                                    <span className="text-base font-extrabold text-red-600 mt-1 leading-none tracking-tight animate-pulse">
                                       {formatRupiah(finalPrice)}
                                     </span>
                                   </>
                                 ) : (
-                                  <span className="text-xs font-black text-blue-600">
-                                    {formatRupiah(basePrice)}
-                                  </span>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">Harga Normal</span>
+                                    <span className="text-sm font-black text-blue-600 leading-none">
+                                      {formatRupiah(basePrice)}
+                                    </span>
+                                  </div>
                                 )}
                               </div>
                             );
