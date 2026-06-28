@@ -143,8 +143,8 @@ export default function App() {
   // Filters & Search (Katalog)
   const [searchTermCatalog, setSearchTermCatalog] = useState('');
   const [currentPageCatalog, setCurrentPageCatalog] = useState(1);
-  const [catalogCategory, setCatalogCategory] = useState('');
-  const [catalogBrand, setCatalogBrand] = useState('');
+  const [catalogCategories, setCatalogCategories] = useState<string[]>([]);
+  const [catalogBrands, setCatalogBrands] = useState<string[]>([]);
   const [windowCatalogSource, setWindowCatalogSource] = useState<'story' | 'foto'>('story');
   const [catalogCart, setCatalogCart] = useState<string[]>([]);
 
@@ -495,11 +495,11 @@ export default function App() {
     const query = searchTermCatalog.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
     return catalogOnly.filter(p => {
       const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w));
-      const matchCat = !catalogCategory || p.kategori === catalogCategory;
-      const matchBrand = !catalogBrand || p.merk === catalogBrand;
+      const matchCat = catalogCategories.length === 0 || catalogCategories.includes(p.kategori);
+      const matchBrand = catalogBrands.length === 0 || catalogBrands.includes(p.merk);
       return matchSearch && matchCat && matchBrand;
     });
-  }, [products, searchTermCatalog, catalogCategory, catalogBrand, windowCatalogSource]);
+  }, [products, searchTermCatalog, catalogCategories, catalogBrands, windowCatalogSource]);
 
   const paginatedCatalogProducts = useMemo(() => {
     const start = (currentPageCatalog - 1) * itemsPerPage;
@@ -1107,8 +1107,8 @@ export default function App() {
               promoText = `-${promoValue}%`;
             } else if (promoType === 'strikethrough' && promoValue > 0) {
               hasPromo = true;
-              originalPrice = promoValue;
-              finalPrice = priceVal;
+              originalPrice = priceVal;
+              finalPrice = promoValue;
               promoText = 'PROMO';
             }
 
@@ -1672,30 +1672,113 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                  <div className="relative w-full sm:w-1/2">
-                    <select
-                      value={catalogCategory}
-                      onChange={(e) => { setCatalogCategory(e.target.value); setCurrentPageCatalog(1); }}
-                      className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors cursor-pointer outline-none shadow-sm"
-                    >
-                      <option value="">Semua Kategori (Katalog)</option>
-                      {availableCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                <div className="mt-2 flex flex-col gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                  {/* Category Filter */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                        <span className="w-1.5 h-3 bg-blue-500 rounded-full"></span>
+                        Tag Kategori ({catalogCategories.length} terpilih)
+                      </span>
+                      {catalogCategories.length > 0 && (
+                        <button
+                          onClick={() => { setCatalogCategories([]); setCurrentPageCatalog(1); }}
+                          className="text-[11px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                        >
+                          Reset Kategori
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto pr-1">
+                      <button
+                        onClick={() => { setCatalogCategories([]); setCurrentPageCatalog(1); }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          catalogCategories.length === 0
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        Semua Kategori
+                      </button>
+                      {availableCategories.map(cat => {
+                        const isSelected = catalogCategories.includes(cat);
+                        return (
+                          <button
+                            key={cat}
+                            onClick={() => {
+                              if (isSelected) {
+                                setCatalogCategories(prev => prev.filter(c => c !== cat));
+                              } else {
+                                setCatalogCategories(prev => [...prev, cat]);
+                              }
+                              setCurrentPageCatalog(1);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+                              isSelected
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-blue-700 stroke-[3]" />}
+                            {cat}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="relative w-full sm:w-1/2">
-                    <select
-                      value={catalogBrand}
-                      onChange={(e) => { setCatalogBrand(e.target.value); setCurrentPageCatalog(1); }}
-                      className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors cursor-pointer outline-none shadow-sm"
-                    >
-                      <option value="">Semua Merk (Katalog)</option>
-                      {availableBrands.map(b => (
-                        <option key={b} value={b}>{b}</option>
-                      ))}
-                    </select>
+
+                  {/* Brand Filter */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2 border-t border-gray-100 pt-3">
+                      <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                        <span className="w-1.5 h-3 bg-indigo-500 rounded-full"></span>
+                        Tag Merk ({catalogBrands.length} terpilih)
+                      </span>
+                      {catalogBrands.length > 0 && (
+                        <button
+                          onClick={() => { setCatalogBrands([]); setCurrentPageCatalog(1); }}
+                          className="text-[11px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                        >
+                          Reset Merk
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto pr-1">
+                      <button
+                        onClick={() => { setCatalogBrands([]); setCurrentPageCatalog(1); }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          catalogBrands.length === 0
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        Semua Merk
+                      </button>
+                      {availableBrands.map(b => {
+                        const isSelected = catalogBrands.includes(b);
+                        return (
+                          <button
+                            key={b}
+                            onClick={() => {
+                              if (isSelected) {
+                                setCatalogBrands(prev => prev.filter(brand => brand !== b));
+                              } else {
+                                setCatalogBrands(prev => [...prev, b]);
+                              }
+                              setCurrentPageCatalog(1);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+                              isSelected
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-indigo-700 stroke-[3]" />}
+                            {b}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1875,8 +1958,8 @@ export default function App() {
                               promoLabel = `-${promoValue}%`;
                             } else if (promoType === 'strikethrough' && promoValue > 0) {
                               hasPromo = true;
-                              originalPrice = promoValue;
-                              finalPrice = basePrice;
+                              originalPrice = basePrice;
+                              finalPrice = promoValue;
                               promoLabel = 'PROMO';
                             }
 
@@ -1892,7 +1975,7 @@ export default function App() {
                                         {promoLabel}
                                       </span>
                                     </div>
-                                    <span className="text-xs font-black text-red-600 mt-0.5">
+                                    <span className="text-sm font-black text-red-600 mt-0.5 animate-pulse">
                                       {formatRupiah(finalPrice)}
                                     </span>
                                   </>
