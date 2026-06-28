@@ -35,7 +35,8 @@ import {
   Upload,
   Check,
   Share2,
-  Copy
+  Copy,
+  Eye
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -116,6 +117,353 @@ const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: stri
         }}
         className={`${className} transition-all duration-700 ease-out ${loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       />
+    </div>
+  );
+};
+
+interface CatalogPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  catalogCart: string[];
+  products: Product[];
+  pdfGrid: string;
+  pdfPrice: string;
+  windowCatalogSource: 'story' | 'foto';
+  catalogTiers: Record<string, 'eceran' | 'grosir' | 'partai' | 'custom'>;
+  globalPriceTier: 'eceran' | 'grosir' | 'partai';
+  catalogCustomPrices: Record<string, number>;
+  catalogPromoType: Record<string, 'none' | 'percent' | 'strikethrough'>;
+  catalogPromoValue: Record<string, number>;
+  onConfirmDownload: () => void;
+}
+
+const CatalogPreviewModal = ({
+  isOpen,
+  onClose,
+  catalogCart,
+  products,
+  pdfGrid,
+  pdfPrice,
+  windowCatalogSource,
+  catalogTiers,
+  globalPriceTier,
+  catalogCustomPrices,
+  catalogPromoType,
+  catalogPromoValue,
+  onConfirmDownload,
+}: CatalogPreviewModalProps) => {
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const cols = parseInt(pdfGrid.charAt(0)) || 2;
+  const rows = parseInt(pdfGrid.charAt(2)) || 2;
+  const itemsPerPage = cols * rows;
+
+  const targetProducts = useMemo(() => {
+    return products.filter(p => catalogCart.includes(p.id));
+  }, [products, catalogCart]);
+
+  const pages = useMemo(() => {
+    const pgs: Product[][] = [];
+    for (let i = 0; i < targetProducts.length; i += itemsPerPage) {
+      pgs.push(targetProducts.slice(i, i + itemsPerPage));
+    }
+    return pgs;
+  }, [targetProducts, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [pdfGrid, catalogCart]);
+
+  if (!isOpen) return null;
+
+  const activePageProducts = pages[currentPage] || [];
+  const totalPages = pages.length;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[92vh] overflow-hidden border border-slate-100 animate-fadeIn">
+        
+        {/* Modal Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-100 text-blue-700 p-2 rounded-lg">
+              <Eye className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-slate-800 text-base">Pratinjau PDF Katalog</h3>
+              <p className="text-xs text-slate-500 font-semibold">Tampilan simulasi cetak A4 sebelum diunduh</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Body: Interactive Workspace */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-100 flex flex-col md:flex-row gap-6 items-start justify-center">
+          
+          {/* Main Simulated A4 Page */}
+          <div className="flex-1 flex flex-col items-center justify-center w-full max-w-[620px]">
+            {totalPages === 0 ? (
+              <div className="bg-white rounded-xl p-8 border border-dashed border-slate-300 text-center text-slate-400 w-full">
+                Tidak ada produk terpilih untuk ditampilkan.
+              </div>
+            ) : (
+              <div className="w-full flex flex-col gap-3">
+                
+                {/* Simulated A4 Container */}
+                <div 
+                  className="w-full aspect-[210/297] bg-white rounded-lg shadow-xl relative overflow-hidden border border-slate-300 flex flex-col justify-between text-black text-left select-none"
+                  style={{ fontSize: cols <= 2 ? '14px' : (cols <= 4 ? '11px' : '8px') }}
+                >
+                  
+                  {/* SIMULATED HEADER BAR */}
+                  <div className="h-[9.5%] bg-[#0c4ca3] border-b-[3px] border-[#ffe000] relative flex items-center justify-end px-[5%]">
+                    {/* Simulated Yellow Mascot Logo Badge on Left */}
+                    <div className="absolute top-0 left-0 w-[27%] h-[115%] bg-[#ffe000] rounded-br-xl shadow-md z-10 flex flex-col justify-center pl-[2.5%] pr-[1%] py-1">
+                      <div className="text-[#dc143c] font-black text-[7px] md:text-[9.5px] leading-none tracking-tight">GLOBAL MART</div>
+                      <div className="text-[#0c4ca3] font-extrabold text-[3.5px] md:text-[4.5px] leading-none mt-1 tracking-tighter">ALAT TULIS KANTOR & SEKOLAH</div>
+                    </div>
+                    {/* Header Text */}
+                    <div className="text-white font-extrabold tracking-[0.25em] text-[8px] md:text-sm uppercase select-none opacity-90">
+                      KATALOG PRODUK
+                    </div>
+                  </div>
+
+                  {/* SIMULATED GRID CONTENT */}
+                  <div className="h-[82.1%] px-[4.5%] py-[3.5%] bg-white flex flex-col justify-start">
+                    <div 
+                      className="grid w-full h-full gap-x-[3.5%] gap-y-[4.5%]"
+                      style={{ 
+                        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`
+                      }}
+                    >
+                      {activePageProducts.map((p, idx) => {
+                        const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
+                        const imgUrl = imgId && imgId !== '-' ? `https://lh3.googleusercontent.com/d/${imgId}=w320` : '';
+                        
+                        // Pricing & Promo Calculations
+                        let priceVal = 0;
+                        if (pdfPrice === 'active') {
+                          const activeTier = catalogTiers[p.id] || globalPriceTier;
+                          priceVal = activeTier === 'custom' ? (catalogCustomPrices[p.id] || 0) : (p.harga ? p.harga[activeTier] : 0);
+                        } else {
+                          priceVal = (p.harga ? p.harga[pdfPrice as 'eceran' | 'grosir' | 'partai'] : 0) || 0;
+                        }
+
+                        const promoType = catalogPromoType[p.id] || 'none';
+                        const promoValue = catalogPromoValue[p.id] || 0;
+
+                        let hasPromo = false;
+                        let finalPrice = priceVal;
+                        let originalPrice = 0;
+                        let promoLabel = '';
+
+                        if (promoType === 'percent' && promoValue > 0) {
+                          hasPromo = true;
+                          originalPrice = priceVal;
+                          finalPrice = Math.round(priceVal * (1 - promoValue / 100));
+                          promoLabel = `-${promoValue}%`;
+                        } else if (promoType === 'strikethrough' && promoValue > 0) {
+                          hasPromo = true;
+                          originalPrice = priceVal;
+                          finalPrice = promoValue;
+                          promoLabel = 'PROMO';
+                        }
+
+                        return (
+                          <div key={p.id || idx} className="flex flex-col justify-between h-full bg-white relative">
+                            {/* Product Image Frame */}
+                            <div 
+                              className={`relative border-[1.5px] border-blue-600 rounded-md overflow-hidden bg-slate-50 flex items-center justify-center flex-1`}
+                              style={{ aspectRatio: windowCatalogSource === 'story' ? '4/5' : '1/1' }}
+                            >
+                              {imgUrl ? (
+                                <img src={imgUrl} alt={p.nama} className="max-w-full max-h-full object-contain pointer-events-none" />
+                              ) : (
+                                <div className="text-slate-400 font-bold select-none text-center flex flex-col items-center">
+                                  <ImageIcon className="opacity-40" style={{ width: cols <= 2 ? '24px' : '14px', height: cols <= 2 ? '24px' : '14px' }} />
+                                  <span style={{ fontSize: cols <= 2 ? '8px' : '5px' }}>No Image</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Info Area */}
+                            <div className="mt-1 flex flex-col justify-end leading-normal">
+                              {/* SKU + Name */}
+                              <div 
+                                className="text-slate-900 font-bold tracking-tight line-clamp-2 leading-tight"
+                                style={{ fontSize: cols <= 2 ? '10px' : (cols <= 4 ? '7.5px' : '5.5px') }}
+                              >
+                                [{p.sku}] {p.nama}
+                              </div>
+
+                              {/* Price */}
+                              {pdfPrice !== 'none' && (
+                                <div className="mt-0.5 flex flex-col justify-end">
+                                  {hasPromo ? (
+                                    <>
+                                      {/* Original Stripped Price & Badge */}
+                                      <div className="flex items-center gap-1 flex-wrap">
+                                        <span 
+                                          className="text-slate-400 line-through leading-none font-medium"
+                                          style={{ fontSize: cols <= 2 ? '8.5px' : (cols <= 4 ? '6.5px' : '4.5px') }}
+                                        >
+                                          Rp {formatNumber(originalPrice)}
+                                        </span>
+                                        <span 
+                                          className="bg-red-500 text-white font-black px-0.5 rounded leading-none py-0.2"
+                                          style={{ fontSize: cols <= 2 ? '7.5px' : (cols <= 4 ? '5.5px' : '3.5px') }}
+                                        >
+                                          {promoLabel}
+                                        </span>
+                                      </div>
+                                      {/* Final Promo Price */}
+                                      <span 
+                                        className="font-extrabold text-red-600 leading-none mt-0.5"
+                                        style={{ fontSize: cols <= 2 ? '10.5px' : (cols <= 4 ? '8.5px' : '6px') }}
+                                      >
+                                        Rp {formatNumber(finalPrice)}
+                                        {p.unit && <span className="font-medium text-slate-500" style={{ fontSize: '0.85em' }}> / {p.unit}</span>}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    /* Normal Price */
+                                    <span 
+                                      className="font-bold text-red-600 leading-none"
+                                      style={{ fontSize: cols <= 2 ? '10.5px' : (cols <= 4 ? '8.5px' : '6px') }}
+                                    >
+                                      Rp {formatNumber(priceVal)}
+                                      {p.unit && <span className="font-medium text-slate-500" style={{ fontSize: '0.85em' }}> / {p.unit}</span>}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SIMULATED FOOTER BAR */}
+                  <div className="h-[8.4%] border-t border-slate-100 flex items-stretch z-10 select-none">
+                    {/* Yellow Part */}
+                    <div className="w-[65%] bg-[#ffe000] flex items-center justify-around px-2 text-[4px] md:text-[8px] font-extrabold text-black">
+                      <div className="flex items-center gap-1">
+                        <Check className="w-1 md:w-2.5 h-1 md:h-2.5 stroke-[4]" />
+                        <span>PRODUK ORIGINAL</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Check className="w-1 md:w-2.5 h-1 md:h-2.5 stroke-[4]" />
+                        <span>HARGA BERSAHABAT</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Check className="w-1 md:w-2.5 h-1 md:h-2.5 stroke-[4]" />
+                        <span>LENGKAP & TERPERCAYA</span>
+                      </div>
+                    </div>
+                    {/* Blue Part */}
+                    <div className="w-[35%] bg-[#0c4ca3] flex flex-col items-center justify-center text-white px-1">
+                      <div className="font-black italic text-[5px] md:text-[11px] leading-tight tracking-tight">#PASTILEBIHPUAS</div>
+                      <div className="font-bold text-[3.5px] md:text-[7.5px] opacity-80 leading-none mt-0.5">globalmart.id</div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Page Number & Simple Pagination Controls */}
+                <div className="flex justify-between items-center bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm mt-1">
+                  <div className="text-xs font-bold text-slate-600">
+                    Halaman <span className="text-blue-600">{currentPage + 1}</span> dari <span className="text-slate-800">{totalPages}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={currentPage === 0}
+                      onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                      className="p-1.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={currentPage >= totalPages - 1}
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                      className="p-1.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            )}
+          </div>
+
+          {/* Quick PDF Options Summary on Sidebar */}
+          <div className="w-full md:w-72 flex flex-col gap-4 bg-slate-50 border border-slate-200 p-5 rounded-xl self-stretch justify-between">
+            <div className="space-y-4">
+              <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">Spesifikasi Katalog</span>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between border-b border-slate-200 pb-2 text-xs">
+                  <span className="text-slate-500 font-bold">Total Produk:</span>
+                  <span className="text-slate-800 font-extrabold">{catalogCart.length} item</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-2 text-xs">
+                  <span className="text-slate-500 font-bold">Grid Layout:</span>
+                  <span className="text-slate-800 font-extrabold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{pdfGrid} (A4)</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-2 text-xs">
+                  <span className="text-slate-500 font-bold">Sumber Gambar:</span>
+                  <span className="text-slate-800 font-extrabold capitalize">{windowCatalogSource} ({windowCatalogSource === 'story' ? 'Story 4:5' : 'Foto 1:1'})</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-2 text-xs">
+                  <span className="text-slate-500 font-bold">Opsi Harga:</span>
+                  <span className="text-slate-800 font-extrabold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded capitalize">{pdfPrice === 'active' ? 'Sesuai Pilihan' : pdfPrice}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-2 text-xs">
+                  <span className="text-slate-500 font-bold">Estimasi Cetak:</span>
+                  <span className="text-slate-800 font-extrabold">{totalPages} halaman A4</span>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-[11px] text-yellow-800 font-semibold space-y-1">
+                <div className="flex items-center gap-1 font-bold">
+                  <AlertCircle className="w-3.5 h-3.5 text-yellow-600 shrink-0" />
+                  <span>Petunjuk Cetak</span>
+                </div>
+                <p>Pratinjau di atas merepresentasikan struktur PDF yang sebenarnya. Periksa nama, harga, diskon, dan kualitas gambar agar siap unduh.</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={onConfirmDownload}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 active-tap transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4" /> Unduh PDF Katalog
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1 active-tap transition-all cursor-pointer"
+              >
+                Kembali & Edit
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
     </div>
   );
 };
@@ -248,6 +596,7 @@ export default function App() {
   } | null>(null);
   const [pdfNameModalOpen, setPdfNameModalOpen] = useState(false);
   const [pdfCustomName, setPdfCustomName] = useState('');
+  const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -1930,7 +2279,13 @@ export default function App() {
                   </div>
                   <div className="flex items-end">
                     <button
-                      onClick={generatePDF}
+                      onClick={() => {
+                        if (catalogCart.length === 0) {
+                          showToast("Pilih minimal 1 produk ke keranjang PDF terlebih dahulu.", "error");
+                          return;
+                        }
+                        setIsPdfPreviewOpen(true);
+                      }}
                       className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-md shadow-blue-500/30 flex items-center justify-center gap-1.5 transition-colors active-tap cursor-pointer"
                     >
                       <Printer className="w-4 h-4" /> Buat PDF Katalog
@@ -2459,7 +2814,13 @@ export default function App() {
           }`}
         >
           <button
-            onClick={generatePDF}
+            onClick={() => {
+              if (catalogCart.length === 0) {
+                showToast("Pilih minimal 1 produk ke keranjang PDF terlebih dahulu.", "error");
+                return;
+              }
+              setIsPdfPreviewOpen(true);
+            }}
             className="active-tap flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-5 py-4 rounded-full shadow-2xl shadow-blue-500/40 border border-blue-500/50 cursor-pointer"
           >
             <Printer className="w-5 h-5" />
@@ -2581,6 +2942,26 @@ export default function App() {
         onAddToCart={(id) => {
           addToCart(id);
           showToast("Berhasil ditambahkan ke keranjang!", "success");
+        }}
+      />
+
+      {/* Catalog Preview Modal */}
+      <CatalogPreviewModal
+        isOpen={isPdfPreviewOpen}
+        onClose={() => setIsPdfPreviewOpen(false)}
+        catalogCart={catalogCart}
+        products={products}
+        pdfGrid={pdfGrid}
+        pdfPrice={pdfPrice}
+        windowCatalogSource={windowCatalogSource}
+        catalogTiers={catalogTiers}
+        globalPriceTier={globalPriceTier}
+        catalogCustomPrices={catalogCustomPrices}
+        catalogPromoType={catalogPromoType}
+        catalogPromoValue={catalogPromoValue}
+        onConfirmDownload={() => {
+          setIsPdfPreviewOpen(false);
+          generatePDF();
         }}
       />
 
