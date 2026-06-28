@@ -2587,201 +2587,379 @@ export default function App() {
         </div>
 
         {/* Right Column / Mobile Cart Drawer */}
-        <div
-          className={`fixed inset-0 z-[80] lg:z-auto bg-gray-900/60 p-4 flex items-center justify-center lg:static lg:bg-transparent lg:p-0 lg:col-span-5 xl:col-span-4 lg:block transition-all ${
-            mobileCartOpen
-              ? 'opacity-100 pointer-events-auto'
-              : 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto'
-          }`}
-          onClick={(e) => { if (e.target === e.currentTarget) setMobileCartOpen(false); }}
-        >
-          <div className={`bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col transform transition-transform duration-300 lg:rounded-2xl lg:shadow-sm lg:sticky lg:top-24 lg:max-w-none lg:max-h-[calc(100vh-6.5rem)] lg:scale-100 lg:transform-none ${
-            mobileCartOpen ? 'scale-100' : 'scale-95 lg:scale-100'
-          }`}>
-            <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-3xl lg:rounded-t-2xl">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
-                <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
-                  <ShoppingCart className="w-5 h-5" />
-                </div>
-                Rincian Pesanan
-              </h2>
-              <div className="flex items-center gap-3">
-                {cartQty > 0 && (
-                  <span className="bg-primary-400 text-primary-900 text-xs font-bold px-2 py-1 rounded-md">
-                    {cartQty} Barang
+        {activeTab === 'catalog' ? (
+          /* Catalog Sidebar (visible on desktop only) */
+          <div className="hidden lg:block lg:col-span-5 xl:col-span-4 transition-all">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 lg:sticky lg:top-24 lg:max-h-[calc(100vh-6.5rem)] flex flex-col">
+              {/* Header */}
+              <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center bg-blue-50/50 rounded-t-2xl">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-blue-800">
+                  <div className="bg-blue-100 text-blue-600 p-1.5 rounded-lg">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  Rincian Katalog PDF
+                </h2>
+                {catalogCart.length > 0 && (
+                  <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-md">
+                    {catalogCart.length} Terpilih
                   </span>
                 )}
-                <button
-                  className="lg:hidden text-gray-400 hover:text-gray-600 p-1 bg-white rounded-full border border-gray-200 shadow-sm active-tap cursor-pointer"
-                  onClick={() => setMobileCartOpen(false)}
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
-            </div>
-            
-            <div className="p-5 overflow-y-auto flex-1 bg-white custom-scrollbar space-y-4">
-              {cart.length === 0 ? (
-                <div className="text-center py-16 text-gray-400 flex flex-col items-center justify-center h-full">
-                  <div className="bg-gray-50 p-4 rounded-full mb-3">
-                    <ShoppingCart className="w-10 h-10 text-gray-300" />
-                  </div>
-                  <p className="text-sm font-medium">Keranjang masih kosong</p>
-                  <p className="text-xs mt-1 text-gray-400">Silakan tambah produk dulu</p>
-                </div>
-              ) : (
-                cart.map(item => {
-                  const price = getItemPrice(item);
-                  const subtotal = price * item.qty;
-                  return (
-                    <div key={item.product.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] relative group animate-fadeIn">
+
+              {/* Content Body */}
+              <div className="p-5 overflow-y-auto flex-1 bg-white custom-scrollbar space-y-4">
+                {/* PDF Settings Panel - Integrated into Sidebar */}
+                <div className="bg-blue-50/30 border border-blue-100/70 p-3.5 rounded-xl flex flex-col gap-3 mb-2 animate-fadeIn">
+                  <div className="flex justify-between items-center border-b border-blue-100/50 pb-2 mb-1">
+                    <span className="text-[11px] font-extrabold text-blue-800 uppercase tracking-wider">Pengaturan Cetak</span>
+                    <div className="flex gap-1.5">
                       <button
-                        onClick={() => removeCartItem(item.product.id)}
-                        className="absolute top-3 right-3 text-gray-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-colors active-tap cursor-pointer"
+                        onClick={selectAllCatalogFiltered}
+                        className="text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-800 px-2.5 py-1 rounded font-bold transition-all cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        Pilih Semua
                       </button>
-                      
-                      <h4 className="font-bold text-sm text-gray-800 pr-8 leading-snug mb-3">
-                        {item.product.nama}
-                      </h4>
-                      
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mt-2">
-                        <div className="flex-1 w-full space-y-2">
-                          <select
-                            value={item.priceTier}
-                            onChange={(e) => updateCartPriceTier(item.product.id, e.target.value as any)}
-                            className="w-full text-xs font-semibold border border-gray-200 rounded-lg py-2 px-2.5 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:bg-white transition-colors cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:10px_10px] bg-no-repeat bg-[position:right_10px_center]"
-                          >
-                            <option value="eceran">Harga Eceran ({formatRupiah(item.product.harga.eceran)})</option>
-                            <option value="grosir">Harga Grosir ({formatRupiah(item.product.harga.grosir)})</option>
-                            <option value="partai">Harga Partai ({formatRupiah(item.product.harga.partai)})</option>
-                            <option value="custom">Harga Custom</option>
-                          </select>
-                          
-                          {item.priceTier === 'custom' && (
-                            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-400 focus-within:border-primary-400 shadow-sm mt-1">
-                              <span className="bg-gray-100 text-gray-500 px-3 py-1.5 text-xs font-bold border-r border-gray-300">Rp</span>
-                              <input
-                                type="number"
-                                value={item.customPrice || ''}
-                                onChange={(e) => updateCartCustomPrice(item.product.id, parseInt(e.target.value) || 0)}
-                                className="w-full px-2 py-1.5 text-sm font-bold text-gray-800 outline-none"
-                                placeholder="0"
-                              />
-                            </div>
+                      <button
+                        onClick={clearCatalogCart}
+                        className="text-[10px] bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded font-bold transition-all cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="block text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">Sumber Gambar</label>
+                      <select
+                        value={windowCatalogSource}
+                        onChange={(e) => setWindowCatalogSource(e.target.value as any)}
+                        className="w-full text-xs font-semibold text-gray-700 border border-blue-200 rounded-lg py-1.5 px-2 bg-white focus:ring-1 focus:ring-blue-400 outline-none cursor-pointer shadow-sm"
+                      >
+                        <option value="story">Gambar Story (Portrait 4:5)</option>
+                        <option value="foto">Foto Produk (Portrait 1:1)</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">Layout Grid (A4)</label>
+                        <select
+                          value={pdfGrid}
+                          onChange={(e) => setPdfGrid(e.target.value)}
+                          className="w-full text-xs font-semibold text-gray-700 border border-blue-200 rounded-lg py-1.5 px-2 bg-white focus:ring-1 focus:ring-blue-400 outline-none cursor-pointer shadow-sm"
+                        >
+                          {windowCatalogSource === 'story' ? (
+                            <>
+                              <option value="2x2">2x2 (4 Gbr)</option>
+                              <option value="4x4">4x4 (16 Gbr)</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="4x4">4x4 (16 Gbr)</option>
+                              <option value="6x6">6x6 (36 Gbr)</option>
+                              <option value="8x8">8x8 (64 Gbr)</option>
+                            </>
                           )}
-
-                          <div className="text-sm font-black text-primary-600 pt-1 block sm:hidden">
-                            Subtotal: {formatRupiah(subtotal)}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                          <div className="text-sm font-black text-primary-600 pt-1 hidden sm:block mr-2">
-                            {formatRupiah(subtotal)}
-                          </div>
-                          <div className="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner">
-                            <button
-                              onClick={() => updateCartQty(item.product.id, -1)}
-                              className="active-tap w-8 h-8 flex items-center justify-center bg-white rounded-lg text-gray-600 hover:text-gray-900 shadow-sm border border-gray-200/50 cursor-pointer"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <input
-                              type="number"
-                              value={item.qty}
-                              onChange={(e) => updateCartQtyManual(item.product.id, parseInt(e.target.value) || 0)}
-                              className="text-sm font-bold w-12 text-center bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-primary-400 rounded-md py-1 transition-all"
-                              min="0"
-                            />
-                            <button
-                              onClick={() => updateCartQty(item.product.id, 1)}
-                              className="active-tap w-8 h-8 flex items-center justify-center bg-white rounded-lg text-gray-600 hover:text-gray-900 shadow-sm border border-gray-200/50 cursor-pointer"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
+                        </select>
                       </div>
 
-                      <div className="mt-3 bg-primary-50/50 border border-primary-100 rounded-lg p-2 flex items-center gap-2 focus-within:ring-2 focus-within:ring-primary-400 focus-within:border-primary-400 transition-all">
-                        <PenLine className="w-4 h-4 text-primary-500" />
-                        <input
-                          type="text"
-                          value={item.note}
-                          onChange={(e) => updateCartItemNote(item.product.id, e.target.value)}
-                          className="w-full bg-transparent text-xs text-gray-700 outline-none placeholder-gray-400"
-                          placeholder="Catatan khusus item ini (opsional)..."
-                        />
+                      <div>
+                        <label className="block text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">Opsi Harga</label>
+                        <select
+                          value={pdfPrice}
+                          onChange={(e) => setPdfPrice(e.target.value)}
+                          className="w-full text-xs font-semibold text-gray-700 border border-blue-200 rounded-lg py-1.5 px-2 bg-white focus:ring-1 focus:ring-blue-400 outline-none cursor-pointer shadow-sm"
+                        >
+                          <option value="active">Harga Aktif</option>
+                          <option value="none">Tanpa Harga</option>
+                          <option value="eceran">Eceran</option>
+                          <option value="grosir">Grosir</option>
+                          <option value="partai">Partai</option>
+                        </select>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                  </div>
+                </div>
 
-            <div className="p-5 border-t border-gray-100 bg-gray-50/80 rounded-b-3xl lg:rounded-b-2xl">
-              <div className="flex flex-col gap-1 mb-4">
-                <span className="text-sm font-semibold text-gray-500">Total Pembayaran</span>
-                <span className="text-2xl font-black text-gray-800 tracking-tight">
-                  {formatRupiah(cartTotal)}
-                </span>
-              </div>
+                {/* Selected Products List */}
+                <div className="space-y-3">
+                  <span className="block text-[11px] font-extrabold text-gray-400 uppercase tracking-wider pl-1">Daftar Produk Terpilih</span>
+                  
+                  {catalogCart.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 flex flex-col items-center justify-center border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                      <FileText className="w-8 h-8 text-gray-300 mb-2" />
+                      <p className="text-xs font-semibold">Belum ada produk terpilih</p>
+                      <p className="text-[10px] mt-1 text-gray-400 max-w-[180px] leading-relaxed">Pilih produk dari daftar di samping untuk dimasukkan ke katalog PDF</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
+                      {products.filter(p => catalogCart.includes(p.id)).map(p => {
+                        const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
+                        const thumbnailUrl = imgId && imgId !== '-' ? `https://lh3.googleusercontent.com/d/${imgId}=w320` : 'https://placehold.co/100x100/f8fafc/94a3b8?text=No+Img';
+                        
+                        const activeTier = catalogTiers[p.id] || globalPriceTier;
+                        const activeCustomPrice = catalogCustomPrices[p.id] || 0;
+                        const priceVal = activeTier === 'custom' ? activeCustomPrice : (p.harga ? p.harga[activeTier] : 0);
 
-              <div className="mb-5">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                  Catatan Umum Pesanan <span className="font-normal normal-case">(Opsional)</span>
-                </label>
-                <div className="relative group">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
-                    <StickyNote className="w-4 h-4" />
-                  </span>
-                  <input
-                    type="text"
-                    value={customerNote}
-                    onChange={(e) => setCustomerNote(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium bg-white"
-                    placeholder="Contoh: Kirim sebelum jam 4 sore"
-                  />
+                        const promoType = catalogPromoType[p.id] || 'none';
+                        const promoValue = catalogPromoValue[p.id] || 0;
+                        let finalPrice = priceVal;
+                        if (promoType === 'percent' && promoValue > 0) {
+                          finalPrice = Math.round(priceVal * (1 - promoValue / 100));
+                        } else if (promoType === 'strikethrough' && promoValue > 0) {
+                          finalPrice = promoValue;
+                        }
+
+                        return (
+                          <div key={p.id} className="flex gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200/60 relative group animate-fadeIn hover:bg-slate-100/50 transition-colors">
+                            <button
+                              onClick={() => toggleCatalogCart(p.id)}
+                              className="absolute top-2 right-2 text-gray-300 hover:text-red-500 hover:bg-red-50 p-1 rounded-full transition-colors cursor-pointer"
+                              title="Hapus dari PDF"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+
+                            <img src={thumbnailUrl} alt={p.nama} className="w-12 h-12 object-contain bg-white rounded-lg border border-slate-200 shrink-0" />
+                            
+                            <div className="flex-1 min-w-0 pr-6">
+                              <h4 className="font-bold text-[11px] text-gray-800 truncate mb-0.5" title={p.nama}>
+                                [{p.sku}] {p.nama}
+                              </h4>
+                              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 capitalize">
+                                <span>Harga:</span>
+                                <span className="text-blue-600 font-bold">{formatRupiah(finalPrice)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              {/* Sticky Action Footer of Sidebar */}
+              <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
                 <button
-                  disabled={cart.length === 0}
-                  onClick={() => saveToHistory(true)}
-                  className={`active-tap w-1/3 py-3.5 rounded-xl font-bold text-sm flex justify-center items-center gap-1.5 transition-all border ${
-                    cart.length === 0
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
-                      : 'bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-200 cursor-pointer shadow-sm'
-                  }`}
-                >
-                  <Save className="w-4 h-4" />
-                  <span className="hidden sm:inline">Draft</span>
-                </button>
-                <button
-                  disabled={cart.length === 0}
+                  disabled={catalogCart.length === 0}
                   onClick={() => {
-                    const name = customerName.trim();
-                    if (!name) {
-                      showToast("Mohon isi Nama Customer terlebih dahulu!", "error");
+                    if (catalogCart.length === 0) {
+                      showToast("Pilih minimal 1 produk ke keranjang PDF terlebih dahulu.", "error");
                       return;
                     }
-                    setCheckoutOpen(true);
+                    setIsPdfPreviewOpen(true);
                   }}
-                  className={`active-tap w-2/3 py-3.5 rounded-xl font-bold text-lg flex justify-center items-center gap-2 transition-all ${
-                    cart.length === 0
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
-                      : 'bg-primary-400 hover:bg-primary-500 text-primary-900 shadow-lg shadow-primary-400/30 cursor-pointer'
+                  className={`w-full py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all shadow-md ${
+                    catalogCart.length === 0
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 cursor-pointer active-tap'
                   }`}
                 >
-                  Checkout Sekarang
+                  <Printer className="w-4 h-4" />
+                  <span>Buat PDF ({catalogCart.length} Produk)</span>
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div
+            className={`fixed inset-0 z-[80] lg:z-auto bg-gray-900/60 p-4 flex items-center justify-center lg:static lg:bg-transparent lg:p-0 lg:col-span-5 xl:col-span-4 lg:block transition-all ${
+              mobileCartOpen
+                ? 'opacity-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto'
+            }`}
+            onClick={(e) => { if (e.target === e.currentTarget) setMobileCartOpen(false); }}
+          >
+            <div className={`bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col transform transition-transform duration-300 lg:rounded-2xl lg:shadow-sm lg:sticky lg:top-24 lg:max-w-none lg:max-h-[calc(100vh-6.5rem)] lg:scale-100 lg:transform-none ${
+              mobileCartOpen ? 'scale-100' : 'scale-95 lg:scale-100'
+            }`}>
+              <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-3xl lg:rounded-t-2xl">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
+                  <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
+                    <ShoppingCart className="w-5 h-5" />
+                  </div>
+                  Rincian Pesanan
+                </h2>
+                <div className="flex items-center gap-3">
+                  {cartQty > 0 && (
+                    <span className="bg-primary-400 text-primary-900 text-xs font-bold px-2 py-1 rounded-md">
+                      {cartQty} Barang
+                    </span>
+                  )}
+                  <button
+                    className="lg:hidden text-gray-400 hover:text-gray-600 p-1 bg-white rounded-full border border-gray-200 shadow-sm active-tap cursor-pointer"
+                    onClick={() => setMobileCartOpen(false)}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-5 overflow-y-auto flex-1 bg-white custom-scrollbar space-y-4">
+                {cart.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400 flex flex-col items-center justify-center h-full">
+                    <div className="bg-gray-50 p-4 rounded-full mb-3">
+                      <ShoppingCart className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <p className="text-sm font-medium">Keranjang masih kosong</p>
+                    <p className="text-xs mt-1 text-gray-400">Silakan tambah produk dulu</p>
+                  </div>
+                ) : (
+                  cart.map(item => {
+                    const price = getItemPrice(item);
+                    const subtotal = price * item.qty;
+                    return (
+                      <div key={item.product.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] relative group animate-fadeIn">
+                        <button
+                          onClick={() => removeCartItem(item.product.id)}
+                          className="absolute top-3 right-3 text-gray-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-colors active-tap cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        
+                        <h4 className="font-bold text-sm text-gray-800 pr-8 leading-snug mb-3">
+                          {item.product.nama}
+                        </h4>
+                        
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mt-2">
+                          <div className="flex-1 w-full space-y-2">
+                            <select
+                              value={item.priceTier}
+                              onChange={(e) => updateCartPriceTier(item.product.id, e.target.value as any)}
+                              className="w-full text-xs font-semibold border border-gray-200 rounded-lg py-2 px-2.5 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:bg-white transition-colors cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:10px_10px] bg-no-repeat bg-[position:right_10px_center]"
+                            >
+                              <option value="eceran">Harga Eceran ({formatRupiah(item.product.harga.eceran)})</option>
+                              <option value="grosir">Harga Grosir ({formatRupiah(item.product.harga.grosir)})</option>
+                              <option value="partai">Harga Partai ({formatRupiah(item.product.harga.partai)})</option>
+                              <option value="custom">Harga Custom</option>
+                            </select>
+                            
+                            {item.priceTier === 'custom' && (
+                              <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-400 focus-within:border-primary-400 shadow-sm mt-1">
+                                <span className="bg-gray-100 text-gray-500 px-3 py-1.5 text-xs font-bold border-r border-gray-300">Rp</span>
+                                <input
+                                  type="number"
+                                  value={item.customPrice || ''}
+                                  onChange={(e) => updateCartCustomPrice(item.product.id, parseInt(e.target.value) || 0)}
+                                  className="w-full px-2 py-1.5 text-sm font-bold text-gray-800 outline-none"
+                                  placeholder="0"
+                                />
+                              </div>
+                            )}
+
+                            <div className="text-sm font-black text-primary-600 pt-1 block sm:hidden">
+                              Subtotal: {formatRupiah(subtotal)}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                            <div className="text-sm font-black text-primary-600 pt-1 hidden sm:block mr-2">
+                              {formatRupiah(subtotal)}
+                            </div>
+                            <div className="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner">
+                              <button
+                                onClick={() => updateCartQty(item.product.id, -1)}
+                                className="active-tap w-8 h-8 flex items-center justify-center bg-white rounded-lg text-gray-600 hover:text-gray-900 shadow-sm border border-gray-200/50 cursor-pointer"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <input
+                                type="number"
+                                value={item.qty}
+                                onChange={(e) => updateCartQtyManual(item.product.id, parseInt(e.target.value) || 0)}
+                                className="text-sm font-bold w-12 text-center bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-primary-400 rounded-md py-1 transition-all"
+                                min="0"
+                              />
+                              <button
+                                onClick={() => updateCartQty(item.product.id, 1)}
+                                className="active-tap w-8 h-8 flex items-center justify-center bg-white rounded-lg text-gray-600 hover:text-gray-900 shadow-sm border border-gray-200/50 cursor-pointer"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 bg-primary-50/50 border border-primary-100 rounded-lg p-2 flex items-center gap-2 focus-within:ring-2 focus-within:ring-primary-400 focus-within:border-primary-400 transition-all">
+                          <PenLine className="w-4 h-4 text-primary-500" />
+                          <input
+                            type="text"
+                            value={item.note}
+                            onChange={(e) => updateCartItemNote(item.product.id, e.target.value)}
+                            className="w-full bg-transparent text-xs text-gray-700 outline-none placeholder-gray-400"
+                            placeholder="Catatan khusus item ini (opsional)..."
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="p-5 border-t border-gray-100 bg-gray-50/80 rounded-b-3xl lg:rounded-b-2xl">
+                <div className="flex flex-col gap-1 mb-4">
+                  <span className="text-sm font-semibold text-gray-500">Total Pembayaran</span>
+                  <span className="text-2xl font-black text-gray-800 tracking-tight">
+                    {formatRupiah(cartTotal)}
+                  </span>
+                </div>
+
+                <div className="mb-5">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    Catatan Umum Pesanan <span className="font-normal normal-case">(Opsional)</span>
+                  </label>
+                  <div className="relative group">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                      <StickyNote className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={customerNote}
+                      onChange={(e) => setCustomerNote(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium bg-white"
+                      placeholder="Contoh: Kirim sebelum jam 4 sore"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    disabled={cart.length === 0}
+                    onClick={() => saveToHistory(true)}
+                    className={`active-tap w-1/3 py-3.5 rounded-xl font-bold text-sm flex justify-center items-center gap-1.5 transition-all border ${
+                      cart.length === 0
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                        : 'bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-200 cursor-pointer shadow-sm'
+                    }`}
+                  >
+                    <Save className="w-4 h-4" />
+                    <span className="hidden sm:inline">Draft</span>
+                  </button>
+                  <button
+                    disabled={cart.length === 0}
+                    onClick={() => {
+                      const name = customerName.trim();
+                      if (!name) {
+                        showToast("Mohon isi Nama Customer terlebih dahulu!", "error");
+                        return;
+                      }
+                      setCheckoutOpen(true);
+                    }}
+                    className={`active-tap w-2/3 py-3.5 rounded-xl font-bold text-lg flex justify-center items-center gap-2 transition-all ${
+                      cart.length === 0
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
+                        : 'bg-primary-400 hover:bg-primary-500 text-primary-900 shadow-lg shadow-primary-400/30 cursor-pointer'
+                    }`}
+                  >
+                    Checkout Sekarang
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Sticky Mobile Cart Bar (Hidden on Desktop) */}
