@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Image as ImageIcon, PlusCircle } from 'lucide-react';
 import { Product } from '../types';
-import { formatRupiah } from '../utils/helpers';
+import { formatRupiah, getGoogleDriveThumbnail } from '../utils/helpers';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -25,10 +25,7 @@ export default function ProductDetailModal({
   if (!product) return null;
 
   const imgId = product.fotoProdukId || product.gambarStoryId;
-  const imgUrl = imgId
-    // Menggunakan =w640 agar gambar detail terload instan namun sangat tajam di layar handphone maupun laptop
-    ? `https://lh3.googleusercontent.com/d/${imgId}=w640`
-    : `https://placehold.co/600x600/f8fafc/94a3b8?text=Gambar+Tidak+Ada`;
+  const imgUrl = getGoogleDriveThumbnail(imgId, 640);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm animate-fadeIn">

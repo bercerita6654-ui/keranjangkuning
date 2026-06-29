@@ -52,7 +52,8 @@ import {
   mixColor,
   getFormattedDate,
   isNewUpdate,
-  parseDate
+  parseDate,
+  getGoogleDriveThumbnail
 } from './utils/helpers';
 
 // Components
@@ -260,7 +261,7 @@ const CatalogPreviewModal = ({
                     >
                       {activePageProducts.map((p, idx) => {
                         const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
-                        const imgUrl = imgId && imgId !== '-' ? `https://lh3.googleusercontent.com/d/${imgId}=w320` : '';
+                        const imgUrl = imgId && imgId !== '-' ? getGoogleDriveThumbnail(imgId, 320) : '';
                         
                         // Pricing & Promo Calculations
                         let priceVal = 0;
@@ -2421,8 +2422,8 @@ export default function App() {
                   paginatedCatalogProducts.map(p => {
                     const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
                     const imgUrl = `https://lh3.googleusercontent.com/d/${imgId}`;
-                    // Menggunakan image resize Google Drive (=w320) untuk thumbnail agar loading instan dan hemat kuota
-                    const thumbnailUrl = imgId ? `${imgUrl}=w320` : '';
+                    // Menggunakan CDN thumbnail Google Drive yang dioptimalkan untuk performa maksimal
+                    const thumbnailUrl = getGoogleDriveThumbnail(imgId, 320);
                     const isSelected = catalogCart.includes(p.id);
                     
                     const activeTier = catalogTiers[p.id] || globalPriceTier;
@@ -2812,7 +2813,7 @@ export default function App() {
                     <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
                       {products.filter(p => catalogCart.includes(p.id)).map(p => {
                         const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
-                        const thumbnailUrl = imgId && imgId !== '-' ? `https://lh3.googleusercontent.com/d/${imgId}=w320` : 'https://placehold.co/100x100/f8fafc/94a3b8?text=No+Img';
+                        const thumbnailUrl = getGoogleDriveThumbnail(imgId, 120);
                         
                         const activeTier = catalogTiers[p.id] || globalPriceTier;
                         const activeCustomPrice = catalogCustomPrices[p.id] || 0;
