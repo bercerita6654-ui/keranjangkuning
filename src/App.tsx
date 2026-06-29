@@ -2889,12 +2889,17 @@ export default function App() {
             }`}
             onClick={(e) => { if (e.target === e.currentTarget) setMobileCartOpen(false); }}
           >
-            <div className={`bg-white rounded-t-3xl rounded-b-none sm:rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] sm:max-h-[90vh] flex flex-col transform transition-all duration-300 ease-out lg:rounded-2xl lg:shadow-sm lg:sticky lg:top-24 lg:max-w-none lg:max-h-[calc(100vh-6.5rem)] lg:scale-100 lg:transform-none ${
+            <div className={`bg-white rounded-t-3xl rounded-b-none sm:rounded-3xl shadow-2xl w-full max-w-md max-h-[88vh] sm:max-h-[90vh] flex flex-col transform transition-all duration-300 ease-out lg:rounded-2xl lg:shadow-sm lg:sticky lg:top-24 lg:max-w-none lg:max-h-[calc(100vh-6.5rem)] lg:scale-100 lg:transform-none ${
               mobileCartOpen 
                 ? 'translate-y-0 opacity-100 scale-100' 
                 : 'translate-y-10 sm:translate-y-0 opacity-0 sm:opacity-100 scale-95 lg:scale-100'
             }`}>
-              <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center gap-2 bg-gray-50/50 rounded-t-3xl lg:rounded-t-2xl">
+              {/* Drag indicator handle for native mobile app look */}
+              <div className="flex justify-center pt-3 pb-1 lg:hidden bg-gray-50/50 rounded-t-3xl shrink-0">
+                <div className="w-12 h-1.5 bg-gray-300/80 rounded-full" />
+              </div>
+
+              <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center gap-2 bg-gray-50/50 rounded-t-none lg:rounded-t-2xl shrink-0">
                 <h2 className="text-base xs:text-lg font-bold flex items-center gap-1.5 text-gray-800 min-w-0">
                   <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg shrink-0">
                     <ShoppingCart className="w-4 h-4 xs:w-5 h-5" />
@@ -2917,7 +2922,7 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="p-5 overflow-y-auto flex-1 bg-white custom-scrollbar space-y-4">
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 bg-white custom-scrollbar space-y-4">
                 {cart.length === 0 ? (
                   <div className="text-center py-16 text-gray-400 flex flex-col items-center justify-center h-full">
                     <div className="bg-gray-50 p-4 rounded-full mb-3">
@@ -3018,7 +3023,7 @@ export default function App() {
                 )}
               </div>
 
-              <div className="p-5 border-t border-gray-100 bg-gray-50/80 rounded-b-3xl lg:rounded-b-2xl">
+              <div className="p-5 pb-8 sm:pb-5 border-t border-gray-100 bg-gray-50/80 rounded-b-none sm:rounded-b-3xl lg:rounded-b-2xl shrink-0">
                 <div className="flex flex-col gap-1 mb-4">
                   <span className="text-sm font-semibold text-gray-500">Total Pembayaran</span>
                   <span className="text-2xl font-black text-gray-800 tracking-tight">
