@@ -2036,17 +2036,27 @@ export default function App() {
                     </h2>
                     <p className="text-sm text-gray-500 mt-1">Pilih produk ke dalam keranjang PDF untuk diekspor.</p>
                   </div>
-                  <div className="relative w-full sm:w-72">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-                      <Search className="w-4 h-4" />
-                    </span>
-                    <input
-                      type="text"
-                      value={searchTermCatalog}
-                      onChange={(e) => { setSearchTermCatalog(e.target.value); setCurrentPageCatalog(1); }}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-gray-50/50 text-sm transition-all"
-                      placeholder="Cari berdasar SKU/Nama acak..."
-                    />
+                  <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => fetchData(true)}
+                      className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3.5 py-2.5 rounded-xl transition-colors border border-blue-200 shadow-sm active-tap cursor-pointer shrink-0"
+                      title="Tarik data terbaru dari Google Sheets"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'spin-slow' : ''}`} />
+                      <span>Refresh Data</span>
+                    </button>
+                    <div className="relative flex-1 sm:w-72">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                        <Search className="w-4 h-4" />
+                      </span>
+                      <input
+                        type="text"
+                        value={searchTermCatalog}
+                        onChange={(e) => { setSearchTermCatalog(e.target.value); setCurrentPageCatalog(1); }}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-gray-50/50 text-sm transition-all"
+                        placeholder="Cari berdasar SKU/Nama acak..."
+                      />
+                    </div>
                   </div>
                 </div>
 
