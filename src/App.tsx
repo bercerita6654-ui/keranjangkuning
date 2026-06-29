@@ -2892,22 +2892,23 @@ export default function App() {
             <div className={`bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col transform transition-transform duration-300 lg:rounded-2xl lg:shadow-sm lg:sticky lg:top-24 lg:max-w-none lg:max-h-[calc(100vh-6.5rem)] lg:scale-100 lg:transform-none ${
               mobileCartOpen ? 'scale-100' : 'scale-95 lg:scale-100'
             }`}>
-              <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-3xl lg:rounded-t-2xl">
-                <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
-                  <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
-                    <ShoppingCart className="w-5 h-5" />
+              <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center gap-2 bg-gray-50/50 rounded-t-3xl lg:rounded-t-2xl">
+                <h2 className="text-base xs:text-lg font-bold flex items-center gap-1.5 text-gray-800 min-w-0">
+                  <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg shrink-0">
+                    <ShoppingCart className="w-4 h-4 xs:w-5 h-5" />
                   </div>
-                  Rincian Pesanan
+                  <span className="truncate">Rincian Pesanan</span>
                 </h2>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
                   {cartQty > 0 && (
-                    <span className="bg-primary-400 text-primary-900 text-xs font-bold px-2 py-1 rounded-md">
+                    <span className="bg-primary-400 text-primary-900 text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap">
                       {cartQty} Barang
                     </span>
                   )}
                   <button
-                    className="lg:hidden text-gray-400 hover:text-gray-600 p-1 bg-white rounded-full border border-gray-200 shadow-sm active-tap cursor-pointer"
+                    className="lg:hidden text-gray-400 hover:text-gray-600 w-9 h-9 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm active-tap cursor-pointer shrink-0"
                     onClick={() => setMobileCartOpen(false)}
+                    aria-label="Tutup Keranjang"
                   >
                     <X className="w-5 h-5" />
                   </button>
