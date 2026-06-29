@@ -2882,15 +2882,17 @@ export default function App() {
           </div>
         ) : (
           <div
-            className={`fixed inset-0 z-[80] lg:z-auto bg-gray-900/60 p-4 flex items-center justify-center lg:static lg:bg-transparent lg:p-0 lg:col-span-5 xl:col-span-4 lg:block transition-all ${
+            className={`fixed inset-0 z-[110] lg:z-auto bg-gray-900/60 p-0 sm:p-4 flex items-end sm:items-center justify-center lg:static lg:bg-transparent lg:p-0 lg:col-span-5 xl:col-span-4 lg:block transition-all duration-300 ${
               mobileCartOpen
                 ? 'opacity-100 pointer-events-auto'
                 : 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto'
             }`}
             onClick={(e) => { if (e.target === e.currentTarget) setMobileCartOpen(false); }}
           >
-            <div className={`bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col transform transition-transform duration-300 lg:rounded-2xl lg:shadow-sm lg:sticky lg:top-24 lg:max-w-none lg:max-h-[calc(100vh-6.5rem)] lg:scale-100 lg:transform-none ${
-              mobileCartOpen ? 'scale-100' : 'scale-95 lg:scale-100'
+            <div className={`bg-white rounded-t-3xl rounded-b-none sm:rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] sm:max-h-[90vh] flex flex-col transform transition-all duration-300 ease-out lg:rounded-2xl lg:shadow-sm lg:sticky lg:top-24 lg:max-w-none lg:max-h-[calc(100vh-6.5rem)] lg:scale-100 lg:transform-none ${
+              mobileCartOpen 
+                ? 'translate-y-0 opacity-100 scale-100' 
+                : 'translate-y-10 sm:translate-y-0 opacity-0 sm:opacity-100 scale-95 lg:scale-100'
             }`}>
               <div className="p-4 lg:p-5 border-b border-gray-100 flex justify-between items-center gap-2 bg-gray-50/50 rounded-t-3xl lg:rounded-t-2xl">
                 <h2 className="text-base xs:text-lg font-bold flex items-center gap-1.5 text-gray-800 min-w-0">
