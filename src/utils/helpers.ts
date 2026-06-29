@@ -83,24 +83,58 @@ export function getFormattedDate(): string {
   });
 }
 
+export function parseDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr || dateStr === '-') return null;
+  const cleanStr = dateStr.trim();
+  const spaceParts = cleanStr.split(/\s+/);
+  const datePart = spaceParts[0];
+  const timePart = spaceParts[1] || '';
+  
+  const dateSubparts = datePart.split(/[-/]/);
+  if (dateSubparts.length !== 3) {
+    const native = new Date(cleanStr);
+    return isNaN(native.getTime()) ? null : native;
+  }
+  
+  let year = 0;
+  let month = 0;
+  let day = 0;
+  
+  if (dateSubparts[0].length === 4) {
+    year = parseInt(dateSubparts[0], 10);
+    month = parseInt(dateSubparts[1], 10) - 1;
+    day = parseInt(dateSubparts[2], 10);
+  } else {
+    day = parseInt(dateSubparts[0], 10);
+    month = parseInt(dateSubparts[1], 10) - 1;
+    year = parseInt(dateSubparts[2], 10);
+  }
+  
+  let hour = 0;
+  let minute = 0;
+  let second = 0;
+  
+  if (timePart) {
+    const timeSubparts = timePart.split(/[:.]/);
+    if (timeSubparts.length >= 1) hour = parseInt(timeSubparts[0], 10) || 0;
+    if (timeSubparts.length >= 2) minute = parseInt(timeSubparts[1], 10) || 0;
+    if (timeSubparts.length >= 3) second = parseInt(timeSubparts[2], 10) || 0;
+  }
+  
+  const d = new Date(year, month, day, hour, minute, second);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export const isNewUpdate = (dateStr: string | null | undefined): boolean => {
   if (!dateStr || dateStr === '-') return false;
   try {
-    const parts = dateStr.split(' ')[0].split(/[-/]/);
-    let d: Date;
-    if (parts.length === 3) {
-      if (parts[0].length === 4) {
-        d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      } else {
-        d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-      }
-    } else {
-      d = new Date(dateStr);
-    }
-    
-    if (isNaN(d.getTime())) return false;
-    const diffDays = Math.ceil(Math.abs(new Date().getTime() - d.getTime()) / (1000 * 60 * 60 * 24)); 
-    return diffDays <= 7;
+    const d = parseDate(dateStr);
+    if (!d) return false;
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    // 24 hours = 24 * 60 * 60 * 1000 = 86400000 ms
+    // We allow a negative difference of up to 12 hours to handle potential timezone shifts
+    return diffMs <= 86400000 && diffMs >= -43200000;
   } catch (e) {
     return false;
   }

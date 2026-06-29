@@ -51,7 +51,8 @@ import {
   rgbToValuesString,
   mixColor,
   getFormattedDate,
-  isNewUpdate
+  isNewUpdate,
+  parseDate
 } from './utils/helpers';
 
 // Components
@@ -845,11 +846,36 @@ export default function App() {
   const filteredCatalogProducts = useMemo(() => {
     const catalogOnly = products.filter(p => windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId);
     const query = searchTermCatalog.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
-    return catalogOnly.filter(p => {
+    const filtered = catalogOnly.filter(p => {
       const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w));
       const matchCat = catalogCategories.length === 0 || catalogCategories.includes(p.kategori);
       const matchBrand = catalogBrands.length === 0 || catalogBrands.includes(p.merk);
       return matchSearch && matchCat && matchBrand;
+    });
+
+    // Sort: Newly updated products (within 24h) first, and sub-sorted by the actual update timestamp descending
+    return [...filtered].sort((pA, pB) => {
+      const dateStrA = windowCatalogSource === 'story' ? pA.lastUpdateStory : pA.lastUpdateFoto;
+      const dateStrB = windowCatalogSource === 'story' ? pB.lastUpdateStory : pB.lastUpdateFoto;
+
+      const isNewA = isNewUpdate(dateStrA);
+      const isNewB = isNewUpdate(dateStrB);
+
+      if (isNewA && !isNewB) return -1;
+      if (!isNewA && isNewB) return 1;
+
+      // If both are new or both are not, sort by date descending
+      const dateA = parseDate(dateStrA);
+      const dateB = parseDate(dateStrB);
+      const timeA = dateA ? dateA.getTime() : 0;
+      const timeB = dateB ? dateB.getTime() : 0;
+      
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+      
+      // Secondary sort to maintain stable order
+      return pA.nama.localeCompare(pB.nama);
     });
   }, [products, searchTermCatalog, catalogCategories, catalogBrands, windowCatalogSource]);
 
