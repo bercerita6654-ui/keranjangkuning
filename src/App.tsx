@@ -91,14 +91,28 @@ const loadImageBase64 = (url: string): Promise<string> => {
   });
 };
 
-const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: string; className: string; onError: (e: any) => void }) => {
+const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: string; className: string; onError?: (e: any) => void }) => {
   const [loaded, setLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
 
   useEffect(() => {
     setLoaded(false);
+    setHasError(false);
     setCurrentSrc(src);
   }, [src]);
+
+  if (hasError) {
+    return (
+      <div className="relative w-full h-full flex flex-col items-center justify-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-4 text-center">
+        <div className="bg-slate-100 p-3 rounded-full mb-1.5 text-slate-400">
+          <ImageIcon className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold text-gray-500 leading-tight block">Gambar Offline</span>
+        <span className="text-[8px] text-gray-400 mt-0.5 leading-tight block">Hubungkan ke internet untuk memuat gambar</span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
@@ -114,7 +128,8 @@ const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: stri
         onLoad={() => setLoaded(true)}
         onError={(e) => {
           setLoaded(true);
-          onError(e);
+          setHasError(true);
+          if (onError) onError(e);
         }}
         className={`${className} transition-all duration-700 ease-out ${loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       />
@@ -477,6 +492,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [loadingText, setLoadingText] = useState('Memuat Produk Utama...');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   // Core Data Lists
   const [products, setProducts] = useState<Product[]>([]);
@@ -620,6 +636,23 @@ export default function App() {
     } catch (e) {
       setIsInIframe(true);
     }
+
+    // Handle online/offline events
+    const handleOnline = () => {
+      setIsOnline(true);
+      showToast("Kembali online! Anda dapat menyegarkan data.", "success");
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast("Koneksi terputus. Aplikasi berjalan dalam Mode Offline.", "error");
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   // Sync theme to root element and custom variables
@@ -742,6 +775,13 @@ export default function App() {
       setIsRefreshing(false);
       if (refresh) showToast("Data produk berhasil diperbarui!", "success");
 
+      // Save initial products to cache
+      try {
+        localStorage.setItem('gm_offline_products', JSON.stringify(initialProducts));
+      } catch (e) {
+        console.error("Gagal menyimpan cache awal:", e);
+      }
+
       // Load reference data in background
       fetch(`${REF_CSV_URL}&t=${new Date().getTime()}`)
         .then(res => {
@@ -809,8 +849,19 @@ export default function App() {
               if (p.kategori && p.kategori !== '-') cats.add(p.kategori);
               if (p.merk && p.merk !== '-') brs.add(p.merk);
             });
-            setAvailableCategories(Array.from(cats).sort());
-            setAvailableBrands(Array.from(brs).sort());
+            const catsArr = Array.from(cats).sort();
+            const brandsArr = Array.from(brs).sort();
+            setAvailableCategories(catsArr);
+            setAvailableBrands(brandsArr);
+
+            // Cache fully updated products, categories, and brands
+            try {
+              localStorage.setItem('gm_offline_products', JSON.stringify(updated));
+              localStorage.setItem('gm_offline_categories', JSON.stringify(catsArr));
+              localStorage.setItem('gm_offline_brands', JSON.stringify(brandsArr));
+            } catch (e) {
+              console.error("Gagal menyimpan cache offline:", e);
+            }
 
             return updated;
           });
@@ -818,6 +869,29 @@ export default function App() {
         .catch(err => console.error("Error loading references in bg", err));
 
     } catch (err: any) {
+      // Try to load from offline cache
+      try {
+        const cachedProdStr = localStorage.getItem('gm_offline_products');
+        if (cachedProdStr) {
+          const cachedProds = JSON.parse(cachedProdStr);
+          if (Array.isArray(cachedProds) && cachedProds.length > 0) {
+            setProducts(cachedProds);
+
+            const cachedCatsStr = localStorage.getItem('gm_offline_categories');
+            const cachedBrandsStr = localStorage.getItem('gm_offline_brands');
+            if (cachedCatsStr) setAvailableCategories(JSON.parse(cachedCatsStr));
+            if (cachedBrandsStr) setAvailableBrands(JSON.parse(cachedBrandsStr));
+
+            setLoading(false);
+            setIsRefreshing(false);
+            showToast("Offline: Menggunakan data produk lokal yang tersimpan.", "success");
+            return;
+          }
+        }
+      } catch (cacheErr) {
+        console.error("Gagal memuat cache offline:", cacheErr);
+      }
+
       setLoading(false);
       setIsRefreshing(false);
       setErrorMsg(err.message || 'Terjadi kesalahan saat memuat data');
@@ -1632,6 +1706,12 @@ export default function App() {
               <ShoppingCart className="text-primary-900 w-6 h-6" />
             </div>
             <h1 className="text-xl font-extrabold text-gray-800 tracking-tight hidden sm:block">Keranjang Kuning</h1>
+            {!isOnline && (
+              <span className="flex items-center gap-1.5 bg-red-50 text-red-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                Mode Offline
+              </span>
+            )}
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3">
