@@ -62,8 +62,9 @@ import CheckoutModal from './components/CheckoutModal';
 import HistoryModal from './components/HistoryModal';
 import ProductDetailModal from './components/ProductDetailModal';
 
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=240870130&single=true&output=csv';
-const REF_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1564332470&single=true&output=csv';
+const SHEET_STOCK_LIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1564332470&single=true&output=csv';
+const SHEET_HARGA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1428805476&single=true&output=csv';
+const SHEET_MASTER_STOCK_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1432842138&single=true&output=csv';
 const STORAGE_KEY = 'keranjangKuning_history';
 
 // Helper to convert Image to Base64
@@ -722,56 +723,163 @@ export default function App() {
     setErrorMsg(null);
 
     try {
-      const mainRes = await fetch(`${CSV_URL}&t=${new Date().getTime()}`);
-      if (!mainRes.ok) throw new Error('Gagal mengambil data produk utama');
-      const mainText = await mainRes.text();
-      const parsed = parseCSV(mainText);
+      // Fetch STOCK LIST, HARGA, and master stock in parallel
+      const [stockListRes, hargaRes, masterStockRes] = await Promise.all([
+        fetch(`${SHEET_STOCK_LIST_URL}&t=${new Date().getTime()}`),
+        fetch(`${SHEET_HARGA_URL}&t=${new Date().getTime()}`),
+        fetch(`${SHEET_MASTER_STOCK_URL}&t=${new Date().getTime()}`)
+      ]);
 
+      if (!stockListRes.ok) throw new Error('Gagal mengambil data STOCK LIST');
+      if (!hargaRes.ok) throw new Error('Gagal mengambil data HARGA');
+      if (!masterStockRes.ok) throw new Error('Gagal mengambil data master stock');
+
+      const [stockListText, hargaText, masterStockText] = await Promise.all([
+        stockListRes.text(),
+        hargaRes.text(),
+        masterStockRes.text()
+      ]);
+
+      const stockListParsed = parseCSV(stockListText);
+      const hargaParsed = parseCSV(hargaText);
+      const masterStockParsed = parseCSV(masterStockText);
+
+      // 1. Build lookup map from HARGA sheet
+      const hargaMap: Record<string, { eceran: number; grosir: number; partai: number }> = {};
+      if (hargaParsed.length > 0) {
+        for (let i = 1; i < hargaParsed.length; i++) {
+          const row = hargaParsed[i];
+          if (!row || row.length === 0) continue;
+          const skuRaw = row[0] ? row[0].toString().trim() : '';
+          if (skuRaw) {
+            const eceranVal = row.length > 3 ? parsePrice(row[3]) : 0;
+            const grosirVal = row.length > 4 ? parsePrice(row[4]) : 0;
+            const partaiVal = row.length > 5 ? parsePrice(row[5]) : 0;
+            hargaMap[skuRaw.toUpperCase()] = {
+              eceran: eceranVal,
+              grosir: grosirVal,
+              partai: partaiVal
+            };
+          }
+        }
+      }
+
+      // 2. Build lookup map from master stock sheet
+      const stockMap: Record<string, { gudang: number; toko: number }> = {};
+      if (masterStockParsed.length > 0) {
+        for (let i = 1; i < masterStockParsed.length; i++) {
+          const row = masterStockParsed[i];
+          if (!row || row.length === 0) continue;
+          const skuRaw = row[0] ? row[0].toString().trim() : '';
+          if (skuRaw) {
+            const gudangVal = row.length > 4 ? parseInt(row[4].replace(/[^0-9-]/g, '') || '0') : 0;
+            const tokoVal = row.length > 5 ? parseInt(row[5].replace(/[^0-9-]/g, '') || '0') : 0;
+            stockMap[skuRaw.toUpperCase()] = {
+              gudang: isNaN(gudangVal) ? 0 : gudangVal,
+              toko: isNaN(tokoVal) ? 0 : tokoVal
+            };
+          }
+        }
+      }
+
+      // 3. Build primary product list based strictly on STOCK LIST
       let initialProducts: Product[] = [];
-
-      if (parsed.length > 0) {
-        const headers = parsed[0].map(h => h.toLowerCase().trim());
-        const colIdx = {
-          nama: headers.findIndex(h => h.includes('nama')),
-          sku: headers.findIndex(h => h === 'sku' || h.includes('sku')),
-          unit: headers.findIndex(h => h.includes('unit')),
-          stokGudang: headers.findIndex(h => h.includes('gudang')),
-          stokToko: headers.findIndex(h => h.includes('toko')),
-          hpp: headers.findIndex(h => h.includes('hpp')),
-          eceran: headers.findIndex(h => h.includes('eceran')),
-          grosir: headers.findIndex(h => h.includes('grosir')),
-          partai: headers.findIndex(h => h.includes('partai')),
+      if (stockListParsed.length > 0) {
+        const refHeaders = stockListParsed[0].map(h => h.toLowerCase().trim());
+        const refColIdx = {
+          code: refHeaders.findIndex(h => h === 'code' || h === 'sku' || h.includes('sku') || h.includes('kode')),
+          barcode: refHeaders.findIndex(h => h === 'barcode'),
+          description: refHeaders.findIndex(h => h === 'description' || h.includes('nama') || h.includes('deskripsi')),
+          unit: refHeaders.findIndex(h => h === 'unit'),
+          kategori: refHeaders.findIndex(h => h === 'kategori'),
+          merk: refHeaders.findIndex(h => h === 'merk'),
+          hpp: refHeaders.findIndex(h => h.includes('hpp') || h.includes('hpp akhir')),
+          eceran: refHeaders.findIndex(h => h === 'eceran'),
+          qty: refHeaders.findIndex(h => h === 'qty' || h.includes('stok') || h.includes('quantity')),
         };
 
-        initialProducts = parsed.slice(1).map((row, index) => {
-          if (!row[colIdx.nama]) return null;
-          const skuValue = colIdx.sku !== -1 && row[colIdx.sku] ? row[colIdx.sku].toString().trim() : '-';
+        const imgStoryIdx = refHeaders.findIndex(h => h.includes('gambar story') || h === 'gambarstory');
+        const imgFotoIdx = refHeaders.findIndex(h => h.includes('foto produk') || h === 'fotoproduk');
+        const lastUpdateStoryIdx = imgStoryIdx !== -1 ? imgStoryIdx + 1 : -1;
+        const lastUpdateFotoIdx = imgFotoIdx !== -1 ? imgFotoIdx + 1 : -1;
+
+        const extractId = (val: string | null) => {
+          if (!val || val === '-') return null;
+          const match = val.match(/[-\w]{25,}/);
+          return match ? match[0] : null;
+        };
+
+        initialProducts = stockListParsed.slice(1).map((row, index) => {
+          const skuRaw = refColIdx.code !== -1 && row[refColIdx.code] ? row[refColIdx.code].toString().trim() : '';
+          if (!skuRaw) return null;
+          const skuUpper = skuRaw.toUpperCase();
+
+          const namaVal = refColIdx.description !== -1 && row[refColIdx.description] ? row[refColIdx.description].trim() : '-';
+          if (namaVal === '-' || !namaVal) return null;
+
+          const barcodeVal = refColIdx.barcode !== -1 && row[refColIdx.barcode] ? row[refColIdx.barcode].trim() : '-';
+          const unitVal = refColIdx.unit !== -1 && row[refColIdx.unit] ? row[refColIdx.unit].trim() : '-';
+          const kategoriVal = refColIdx.kategori !== -1 && row[refColIdx.kategori] ? row[refColIdx.kategori].trim() : '-';
+          const merkVal = refColIdx.merk !== -1 && row[refColIdx.merk] ? row[refColIdx.merk].trim() : '-';
+
+          const hppVal = refColIdx.hpp !== -1 ? parsePrice(row[refColIdx.hpp]) : 0;
+          const defaultEceranVal = refColIdx.eceran !== -1 ? parsePrice(row[refColIdx.eceran]) : 0;
+          const qtyVal = refColIdx.qty !== -1 ? parseInt(row[refColIdx.qty] || '0') : 0;
+
+          const gStoryVal = imgStoryIdx !== -1 && row[imgStoryIdx] ? row[imgStoryIdx].toString().trim() : null;
+          const luStoryVal = lastUpdateStoryIdx !== -1 && row[lastUpdateStoryIdx] ? row[lastUpdateStoryIdx].toString().trim() : '-';
+          const fProdukVal = imgFotoIdx !== -1 && row[imgFotoIdx] ? row[imgFotoIdx].toString().trim() : null;
+          const luFotoVal = lastUpdateFotoIdx !== -1 && row[lastUpdateFotoIdx] ? row[lastUpdateFotoIdx].toString().trim() : '-';
+
+          // Look up pricing data from hargaMap
+          const priceInfo = hargaMap[skuUpper];
+          const finalEceran = priceInfo ? priceInfo.eceran : defaultEceranVal;
+          const finalGrosir = priceInfo ? priceInfo.grosir : finalEceran;
+          const finalPartai = priceInfo ? priceInfo.partai : finalEceran;
+
+          // Look up stock data from stockMap
+          const stockInfo = stockMap[skuUpper];
+          const finalStokGudang = stockInfo ? stockInfo.gudang : 0;
+          const finalStokToko = stockInfo ? stockInfo.toko : qtyVal;
+
           return {
-            id: skuValue !== '-' ? skuValue : `PROD-${index}`,
-            nama: colIdx.nama !== -1 ? row[colIdx.nama] : '-',
-            sku: skuValue,
-            kategori: '-',
-            merk: '-',
-            gambarStoryId: null,
-            lastUpdateStory: '-',
-            fotoProdukId: null,
-            lastUpdateFoto: '-',
-            unit: colIdx.unit !== -1 ? row[colIdx.unit] : '-',
+            id: skuRaw,
+            nama: namaVal,
+            sku: skuRaw,
+            kategori: kategoriVal,
+            merk: merkVal,
+            gambarStoryId: extractId(gStoryVal),
+            lastUpdateStory: luStoryVal,
+            fotoProdukId: extractId(fProdukVal),
+            lastUpdateFoto: luFotoVal,
+            unit: unitVal,
             stok: {
-              gudang: colIdx.stokGudang !== -1 ? parseInt(row[colIdx.stokGudang] || '0') : 0,
-              toko: colIdx.stokToko !== -1 ? parseInt(row[colIdx.stokToko] || '0') : 0,
+              gudang: finalStokGudang,
+              toko: finalStokToko,
             },
             harga: {
-              hpp: colIdx.hpp !== -1 ? parsePrice(row[colIdx.hpp]) : 0,
-              eceran: colIdx.eceran !== -1 ? parsePrice(row[colIdx.eceran]) : 0,
-              grosir: colIdx.grosir !== -1 ? parsePrice(row[colIdx.grosir]) : 0,
-              partai: colIdx.partai !== -1 ? parsePrice(row[colIdx.partai]) : 0,
+              hpp: hppVal,
+              eceran: finalEceran,
+              grosir: finalGrosir,
+              partai: finalPartai,
             }
           };
         }).filter((p): p is Product => p !== null);
       }
 
       setProducts(initialProducts);
+
+      const cats = new Set<string>();
+      const brs = new Set<string>();
+      initialProducts.forEach(p => {
+        if (p.kategori && p.kategori !== '-') cats.add(p.kategori);
+        if (p.merk && p.merk !== '-') brs.add(p.merk);
+      });
+      const catsArr = Array.from(cats).sort();
+      const brandsArr = Array.from(brs).sort();
+      setAvailableCategories(catsArr);
+      setAvailableBrands(brandsArr);
+
       setLoading(false);
       setIsRefreshing(false);
       if (refresh) showToast("Data produk berhasil diperbarui!", "success");
@@ -779,95 +887,11 @@ export default function App() {
       // Save initial products to cache
       try {
         localStorage.setItem('gm_offline_products', JSON.stringify(initialProducts));
+        localStorage.setItem('gm_offline_categories', JSON.stringify(catsArr));
+        localStorage.setItem('gm_offline_brands', JSON.stringify(brandsArr));
       } catch (e) {
         console.error("Gagal menyimpan cache awal:", e);
       }
-
-      // Load reference data in background
-      fetch(`${REF_CSV_URL}&t=${new Date().getTime()}`)
-        .then(res => {
-          if (res.ok) return res.text();
-          throw new Error('Gagal memuat ref');
-        })
-        .then(refText => {
-          const refParsed = parseCSV(refText);
-          const refMap: Record<string, any> = {};
-
-          if (refParsed.length > 0) {
-            const refHeaders = refParsed[0].map(h => h.toLowerCase().trim());
-            const refSkuIdx = refHeaders.findIndex(h => h === 'sku' || h.includes('sku') || h.includes('kode'));
-
-            for (let i = 1; i < refParsed.length; i++) {
-              const row = refParsed[i];
-              const sku = refSkuIdx !== -1 && row[refSkuIdx]
-                ? row[refSkuIdx].toString().trim().toUpperCase()
-                : (row[0] ? row[0].toString().trim().toUpperCase() : null);
-
-              if (sku) {
-                const gambarStoryVal = row.length > 19 && row[19] ? row[19].toString().trim() : null;
-                const lastUpdateStoryVal = row.length > 20 && row[20] ? row[20].toString().trim() : '-';
-                const fotoProdukVal = row.length > 21 && row[21] ? row[21].toString().trim() : null;
-                const lastUpdateFotoVal = row.length > 22 && row[22] ? row[22].toString().trim() : '-';
-
-                const extractId = (val: string | null) => {
-                  if (!val || val === '-') return null;
-                  const match = val.match(/[-\w]{25,}/);
-                  return match ? match[0] : null;
-                };
-
-                refMap[sku] = {
-                  kategori: row.length > 4 && row[4] ? row[4].trim() : '-',
-                  merk: row.length > 6 && row[6] ? row[6].trim() : '-',
-                  gambarStoryId: extractId(gambarStoryVal),
-                  lastUpdateStory: lastUpdateStoryVal,
-                  fotoProdukId: extractId(fotoProdukVal),
-                  lastUpdateFoto: lastUpdateFotoVal
-                };
-              }
-            }
-          }
-
-          setProducts(prev => {
-            const updated = prev.map(p => {
-              const skuKey = p.sku.toUpperCase();
-              if (refMap[skuKey]) {
-                return {
-                  ...p,
-                  kategori: refMap[skuKey].kategori,
-                  merk: refMap[skuKey].merk,
-                  gambarStoryId: refMap[skuKey].gambarStoryId,
-                  lastUpdateStory: refMap[skuKey].lastUpdateStory,
-                  fotoProdukId: refMap[skuKey].fotoProdukId,
-                  lastUpdateFoto: refMap[skuKey].lastUpdateFoto
-                };
-              }
-              return p;
-            });
-
-            const cats = new Set<string>();
-            const brs = new Set<string>();
-            updated.forEach(p => {
-              if (p.kategori && p.kategori !== '-') cats.add(p.kategori);
-              if (p.merk && p.merk !== '-') brs.add(p.merk);
-            });
-            const catsArr = Array.from(cats).sort();
-            const brandsArr = Array.from(brs).sort();
-            setAvailableCategories(catsArr);
-            setAvailableBrands(brandsArr);
-
-            // Cache fully updated products, categories, and brands
-            try {
-              localStorage.setItem('gm_offline_products', JSON.stringify(updated));
-              localStorage.setItem('gm_offline_categories', JSON.stringify(catsArr));
-              localStorage.setItem('gm_offline_brands', JSON.stringify(brandsArr));
-            } catch (e) {
-              console.error("Gagal menyimpan cache offline:", e);
-            }
-
-            return updated;
-          });
-        })
-        .catch(err => console.error("Error loading references in bg", err));
 
     } catch (err: any) {
       // Try to load from offline cache
@@ -1870,9 +1894,10 @@ export default function App() {
                     <button
                       onClick={() => fetchData(true)}
                       className="flex items-center gap-1.5 text-xs font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1.5 rounded-lg transition-colors border border-primary-200 shadow-sm active-tap cursor-pointer"
+                      id="btn-refresh-data"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'spin-slow' : ''}`} />
-                      <span className="hidden sm:inline">Refresh Data</span>
+                      <span>Refresh Data</span>
                     </button>
                   </div>
                   
