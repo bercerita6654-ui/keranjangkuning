@@ -572,6 +572,7 @@ export default function App() {
       return '2x2';
     }
   });
+  const [pdfStockFilter, setPdfStockFilter] = useState<'available' | 'out' | 'all'>('available');
   const [pdfPrice, setPdfPrice] = useState(() => {
     try {
       return localStorage.getItem('gm_pdf_price') || 'active';
@@ -943,7 +944,7 @@ export default function App() {
 
   // Filters (Katalog)
   const filteredCatalogProducts = useMemo(() => {
-    const catalogOnly = products.filter(p => windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId);
+    const catalogOnly = products;
     const query = searchTermCatalog.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
     const filtered = catalogOnly.filter(p => {
       const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w));
@@ -1291,7 +1292,14 @@ export default function App() {
       return;
     }
 
-    const targetProducts = products.filter(p => catalogCart.includes(p.id));
+    let targetProducts = products.filter(p => catalogCart.includes(p.id));
+    
+    if (pdfStockFilter === 'available') {
+      targetProducts = targetProducts.filter(p => (p.stok.gudang + p.stok.toko) > 0);
+    } else if (pdfStockFilter === 'out') {
+      targetProducts = targetProducts.filter(p => (p.stok.gudang + p.stok.toko) === 0);
+    }
+
     if (targetProducts.length === 0) {
       showToast("Tidak ada produk valid yang terpilih.", "error");
       return;
@@ -2406,6 +2414,18 @@ export default function App() {
                     </select>
                   </div>
                   <div>
+                    <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1.5">Filter Stok</label>
+                    <select
+                      value={pdfStockFilter}
+                      onChange={(e) => setPdfStockFilter(e.target.value as any)}
+                      className="w-full text-xs font-bold text-gray-700 border border-blue-200 rounded-lg py-2 px-2.5 bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
+                    >
+                      <option value="available">Hanya stock tersedia</option>
+                      <option value="out">Stok Habis</option>
+                      <option value="all">Semua stock</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1.5">Tampilkan Harga</label>
                     <select
                       value={pdfPrice}
@@ -2489,7 +2509,7 @@ export default function App() {
                             alt={p.nama}
                             className="w-full h-full object-contain rounded-xl group-hover:scale-[1.02]"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/f8fafc/94a3b8?text=Gambar+Rusak';
+                              (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/f8fafc/94a3b8?text=Gambar+belum+tersedia';
                             }}
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
@@ -3403,7 +3423,7 @@ export default function App() {
                   alt={shareProductData.product.nama}
                   className="w-16 h-16 object-contain rounded-xl bg-white border border-gray-100 p-1 shadow-sm"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/f8fafc/94a3b8?text=Gambar';
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/f8fafc/94a3b8?text=Gambar+belum+tersedia';
                   }}
                 />
                 <div className="flex-1 min-w-0">

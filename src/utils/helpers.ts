@@ -142,7 +142,7 @@ export const isNewUpdate = (dateStr: string | null | undefined): boolean => {
 
 export function getGoogleDriveThumbnail(imgId: string | null | undefined, size: number = 320): string {
   if (!imgId || imgId === '-') {
-    return `https://placehold.co/${size}x${size}/f8fafc/94a3b8?text=No+Img`;
+    return `https://placehold.co/${size}x${size}/f8fafc/94a3b8?text=Gambar+belum+tersedia`;
   }
   // drive.google.com/thumbnail has a highly cached, responsive CDN optimized for rendering speed.
   // Using &sz=w{size} fetches pre-rendered images which load instantly.

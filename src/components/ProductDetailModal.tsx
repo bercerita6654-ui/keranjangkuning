@@ -49,7 +49,7 @@ export default function ProductDetailModal({
               <div className="absolute animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-primary-500 z-10"></div>
             )}
             <img
-              src={imgError ? 'https://placehold.co/600x600/f8fafc/94a3b8?text=Gambar+Tidak+Ada' : imgUrl}
+              src={imgError ? 'https://placehold.co/600x600/f8fafc/94a3b8?text=Gambar+belum+tersedia' : imgUrl}
               alt="Foto Produk"
               className={`w-full h-full object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
               onLoad={() => setImgLoaded(true)}
