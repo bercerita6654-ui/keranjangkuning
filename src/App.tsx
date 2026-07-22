@@ -67,6 +67,26 @@ const SHEET_HARGA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1G
 const SHEET_MASTER_STOCK_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1432842138&single=true&output=csv';
 const STORAGE_KEY = 'keranjangKuning_history';
 
+// Helper to fetch with a custom timeout to survive poor internet
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 6000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error: any) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error('Koneksi lambat atau terputus (Timeout)');
+    }
+    throw error;
+  }
+};
+
 // Helper to convert Image to Base64
 const loadImageBase64 = (url: string): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -506,7 +526,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(24);
 
   // Filters & Search (Katalog)
   const [searchTermCatalog, setSearchTermCatalog] = useState('');
@@ -724,11 +744,11 @@ export default function App() {
     setErrorMsg(null);
 
     try {
-      // Fetch STOCK LIST, HARGA, and master stock in parallel
+      // Fetch STOCK LIST, HARGA, and master stock in parallel with timeout to survive poor networks
       const [stockListRes, hargaRes, masterStockRes] = await Promise.all([
-        fetch(`${SHEET_STOCK_LIST_URL}&t=${new Date().getTime()}`),
-        fetch(`${SHEET_HARGA_URL}&t=${new Date().getTime()}`),
-        fetch(`${SHEET_MASTER_STOCK_URL}&t=${new Date().getTime()}`)
+        fetchWithTimeout(`${SHEET_STOCK_LIST_URL}&t=${new Date().getTime()}`),
+        fetchWithTimeout(`${SHEET_HARGA_URL}&t=${new Date().getTime()}`),
+        fetchWithTimeout(`${SHEET_MASTER_STOCK_URL}&t=${new Date().getTime()}`)
       ]);
 
       if (!stockListRes.ok) throw new Error('Gagal mengambil data STOCK LIST');
@@ -883,6 +903,7 @@ export default function App() {
 
       setLoading(false);
       setIsRefreshing(false);
+      setIsOnline(true);
       if (refresh) showToast("Data produk berhasil diperbarui!", "success");
 
       // Save initial products to cache
@@ -895,6 +916,9 @@ export default function App() {
       }
 
     } catch (err: any) {
+      // Mark as offline / bad connection on failure
+      setIsOnline(false);
+      
       // Try to load from offline cache
       try {
         const cachedProdStr = localStorage.getItem('gm_offline_products');
@@ -910,7 +934,7 @@ export default function App() {
 
             setLoading(false);
             setIsRefreshing(false);
-            showToast("Offline: Menggunakan data produk lokal yang tersimpan.", "success");
+            showToast("Mode Offline: Menggunakan data produk lokal yang tersimpan.", "error");
             return;
           }
         }
@@ -1977,9 +2001,9 @@ export default function App() {
                 </div>
 
                 {/* Product Grid */}
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
                   {paginatedProducts.length === 0 ? (
-                    <div className="py-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    <div className="col-span-full py-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                       <Package className="w-16 h-16 mb-3 text-gray-300" />
                       <p className="font-medium">Produk tidak ditemukan.</p>
                     </div>
@@ -1991,59 +2015,88 @@ export default function App() {
                       const activeTier = isInCart ? cartItem.priceTier : (catalogTiers[product.id] || globalPriceTier);
                       const activeCustomPrice = isInCart ? cartItem.customPrice : (catalogCustomPrices[product.id] || 0);
 
+                      const imgId = product.fotoProdukId || product.gambarStoryId;
+                      const hasImage = imgId && imgId !== '-' && imgId !== '';
+                      const thumbnailUrl = hasImage 
+                        ? getGoogleDriveThumbnail(imgId, 320) 
+                        : 'https://placehold.co/300x300/f8fafc/94a3b8?text=Gambar+belum+tersedia';
+
                       return (
-                        <div key={product.id} className="border border-gray-100 bg-white p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row justify-between gap-4 sm:gap-6 hover:shadow-lg transition-all duration-300 group">
-                          <div className="flex-1 flex flex-col justify-start">
-                            <div className="flex items-center mb-2 flex-wrap gap-1">
-                              <span className="text-[11px] font-bold text-primary-500 bg-primary-50 px-2 py-0.5 rounded-md tracking-wider">
-                                {product.sku}
-                              </span>
-                              {product.merk && product.merk !== '-' && (
-                                <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 ml-2">
-                                  {product.merk}
-                                </span>
-                              )}
-                            </div>
+                        <div key={product.id} className="border border-gray-100 bg-white p-2 sm:p-3 pb-3 sm:pb-4 rounded-xl flex flex-col hover:shadow-md transition-all duration-300 group relative">
+                          
+                          {/* Image Thumbnail Container */}
+                          <div 
+                            className="relative w-full aspect-square bg-gray-50 flex items-center justify-center overflow-hidden rounded-lg mb-2 cursor-zoom-in group-hover:scale-[1.01] transition-transform"
+                            onClick={() => setSelectedProductDetail(product)}
+                            title="Klik untuk lihat rincian & foto produk"
+                          >
+                            <img
+                              src={thumbnailUrl}
+                              alt={product.nama}
+                              className="w-full h-full object-contain rounded-lg"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://placehold.co/300x300/f8fafc/94a3b8?text=Gambar+belum+tersedia';
+                              }}
+                            />
                             
+                            {/* SKU Floating Badge */}
+                            <span className="absolute bottom-1 left-1 bg-primary-600/90 text-white text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded shadow-xs backdrop-blur-[2px]">
+                              {product.sku}
+                            </span>
+
+                            {/* Brand Floating Badge (if exists) */}
+                            {product.merk && product.merk !== '-' && (
+                              <span className="absolute top-1 left-1 bg-slate-800/80 text-white text-[8px] font-medium px-1 py-0.5 rounded shadow-xs">
+                                {product.merk}
+                              </span>
+                            )}
+
+                            {/* Quick Zoom Indicator */}
+                            <div className="absolute top-1 right-1 bg-white/90 p-1 rounded-full shadow-xs opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:bg-white">
+                              <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            </div>
+                          </div>
+
+                          {/* Product Details */}
+                          <div className="flex-1 flex flex-col justify-start">
                             <h3
                               onClick={() => setSelectedProductDetail(product)}
-                              className="font-bold text-gray-800 leading-snug mb-3 hover:text-primary-600 cursor-pointer hover:underline transition-colors flex items-start gap-1.5"
+                              className="font-bold text-slate-800 text-[10px] sm:text-xs leading-tight mb-1 cursor-pointer hover:text-primary-600 line-clamp-2 min-h-[1.8rem] sm:min-h-[2.2rem] hover:underline transition-colors"
                               title="Klik untuk lihat rincian & foto produk"
                             >
-                              <span>{product.nama}</span>
-                              <ImageIcon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              {product.nama}
                             </h3>
                             
-                            <div className="flex gap-2.5 mt-auto text-[11px] font-semibold">
-                              <span className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
-                                <Store className="w-3.5 h-3.5" /> Toko: {product.stok.toko}
-                              </span>
-                              <span className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
-                                <Warehouse className="w-3.5 h-3.5" /> Gudang: {product.stok.gudang}
-                              </span>
+                            {/* Stock Indicators */}
+                            <div className="flex gap-1 mb-2 text-[8px] sm:text-[9px] font-semibold text-slate-500 flex-wrap">
+                              <span className="bg-slate-50 px-1 py-0.5 rounded border border-slate-150">T: {product.stok.toko}</span>
+                              <span className="bg-slate-50 px-1 py-0.5 rounded border border-slate-150">G: {product.stok.gudang}</span>
                             </div>
                           </div>
                           
-                          <div className="w-full sm:w-72 flex flex-col justify-end sm:border-l sm:border-gray-100 sm:pl-5">
+                          {/* Price Selector and Actions */}
+                          <div className="w-full mt-auto flex flex-col justify-end">
                             <select
                               value={activeTier}
                               onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
-                              className="w-full text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-2.5 mb-2 appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-primary-400 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:10px_10px] bg-no-repeat bg-[position:right_10px_center]"
+                              className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-no-repeat bg-[position:right_6px_center] pr-4"
                             >
-                              <option value="eceran">Eceran: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
-                              <option value="grosir">Grosir: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
-                              <option value="partai">Partai: {formatRupiah(product.harga.partai)} /{product.unit}</option>
-                              <option value="custom">Harga Custom</option>
+                              <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
+                              <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
+                              <option value="partai">Prt: {formatRupiah(product.harga.partai)} /{product.unit}</option>
+                              <option value="custom">Custom</option>
                             </select>
                             
                             {activeTier === 'custom' && (
-                              <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-400 shadow-sm mb-2">
-                                <span className="bg-gray-100 text-gray-500 px-3 py-2 text-xs font-bold border-r border-gray-300">Rp</span>
+                              <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1.5">
+                                <span className="bg-gray-150 text-gray-400 px-1.5 py-1 text-[8px] font-bold border-r border-gray-200">Rp</span>
                                 <input
                                   type="number"
                                   value={activeCustomPrice || ''}
                                   onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
-                                  className="w-full px-3 py-2 text-sm font-bold text-gray-800 outline-none"
+                                  className="w-full px-1.5 py-1 text-[10px] font-bold text-gray-800 outline-none"
                                   placeholder="0"
                                 />
                               </div>
@@ -2051,39 +2104,39 @@ export default function App() {
 
                             <div className="transition-transform duration-150">
                               {isInCart ? (
-                                <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-xl p-1 shadow-sm mt-1">
+                                <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5 mt-0.5">
                                   <button
                                     onClick={() => updateCartQty(product.id, -1)}
-                                    className={`active-tap w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm border cursor-pointer ${
-                                      cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-100 border-primary-100'
+                                    className={`active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                      cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
                                     }`}
                                   >
-                                    {cartItem.qty === 1 ? <Trash2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                                    {cartItem.qty === 1 ? <Trash2 className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
                                   </button>
                                   <div className="flex flex-col items-center justify-center">
-                                    <span className="text-[9px] font-bold text-primary-600 uppercase tracking-wider mb-[-2px]">Qty</span>
+                                    <span className="text-[7px] font-bold text-primary-600 uppercase tracking-wider mb-[-4px]">Qty</span>
                                     <input
                                       type="number"
                                       value={cartItem.qty}
                                       onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
-                                      className="text-sm font-black w-12 text-center bg-transparent outline-none text-primary-800 focus:bg-white focus:ring-2 focus:ring-primary-400 rounded-md transition-all"
+                                      className="text-[10px] sm:text-xs font-black w-7 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
                                       min="0"
                                     />
                                   </div>
                                   <button
                                     onClick={() => updateCartQty(product.id, 1)}
-                                    className="active-tap w-10 h-10 flex items-center justify-center bg-white rounded-lg text-primary-600 hover:bg-primary-100 shadow-sm border border-primary-100 cursor-pointer"
+                                    className="active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
                                   >
-                                    <Plus className="w-4 h-4" />
+                                    <Plus className="w-3 h-3" />
                                   </button>
                                 </div>
                               ) : (
                                 <button
                                   onClick={() => addToCart(product.id)}
-                                  className="active-tap w-full py-2.5 bg-primary-400 hover:bg-primary-500 text-primary-900 font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm shadow-primary-200 text-sm mt-1 cursor-pointer"
+                                  className="active-tap w-full py-1.5 sm:py-2 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[10px] sm:text-xs mt-0.5 cursor-pointer"
                                 >
-                                  <PlusCircle className="w-4.5 h-4.5" />
-                                  <span>Tambah Keranjang</span>
+                                  <PlusCircle className="w-3.5 h-3.5" />
+                                  <span>Tambah</span>
                                 </button>
                               )}
                             </div>
@@ -2104,9 +2157,10 @@ export default function App() {
                         onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                         className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-white font-medium shadow-sm"
                       >
-                        <option value="20">20 / Hal</option>
-                        <option value="50">50 / Hal</option>
-                        <option value="100">100 / Hal</option>
+                        <option value="12">12 / Hal</option>
+                        <option value="24">24 / Hal</option>
+                        <option value="60">60 / Hal</option>
+                        <option value="120">120 / Hal</option>
                       </select>
                     </div>
                     
@@ -2716,9 +2770,10 @@ export default function App() {
                       onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPageCatalog(1); }}
                       className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white font-medium shadow-sm cursor-pointer"
                     >
-                      <option value="20">20 / Hal</option>
-                      <option value="50">50 / Hal</option>
-                      <option value="100">100 / Hal</option>
+                      <option value="12">12 / Hal</option>
+                      <option value="24">24 / Hal</option>
+                      <option value="60">60 / Hal</option>
+                      <option value="120">120 / Hal</option>
                     </select>
                   </div>
                   
