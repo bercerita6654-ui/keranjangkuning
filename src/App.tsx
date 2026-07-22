@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ShoppingCart,
   Palette,
@@ -116,12 +116,45 @@ const loadImageBase64 = (url: string): Promise<string> => {
 const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: string; className: string; onError?: (e: any) => void }) => {
   const [loaded, setLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(src);
+  const [isInView, setIsInView] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Check if IntersectionObserver is available
+    if (typeof window === 'undefined' || !window.IntersectionObserver) {
+      setIsInView(true);
+      return;
+    }
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+            observer.unobserve(container);
+          }
+        });
+      },
+      {
+        rootMargin: '180px', // Preload images 180px before they enter the screen
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(container);
+    return () => {
+      if (container) {
+        observer.unobserve(container);
+      }
+    };
+  }, [src]);
 
   useEffect(() => {
     setLoaded(false);
     setHasError(false);
-    setCurrentSrc(src);
   }, [src]);
 
   if (hasError) {
@@ -136,25 +169,56 @@ const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: stri
     );
   }
 
+  // Generate a ultra low-res version of the Google Drive image for rapid, super lightweight blur-up loading
+  let tinyPlaceholder = '';
+  if (src && src.includes('googleusercontent.com')) {
+    tinyPlaceholder = src.replace(/=s\d+/, '=s16');
+  }
+
   return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+    <div 
+      ref={containerRef}
+      className="relative w-full h-full flex items-center justify-center overflow-hidden bg-slate-50/50"
+    >
+      {/* Visual Blur-Up Placeholder Layer */}
       {!loaded && (
-        <div className="absolute inset-0 bg-slate-100 animate-pulse rounded-xl flex items-center justify-center">
-          <ImageIcon className="w-8 h-8 text-slate-300 animate-bounce" />
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50">
+          {tinyPlaceholder ? (
+            <img
+              src={tinyPlaceholder}
+              alt=""
+              className="w-full h-full object-cover filter blur-md scale-110 opacity-60"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 animate-pulse"></div>
+          )}
+          {/* Pulsing visual core element */}
+          <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[2px]">
+            <ImageIcon className="w-6 h-6 text-slate-300 animate-pulse" />
+          </div>
         </div>
       )}
-      <img
-        src={currentSrc}
-        loading="lazy"
-        alt={alt}
-        onLoad={() => setLoaded(true)}
-        onError={(e) => {
-          setLoaded(true);
-          setHasError(true);
-          if (onError) onError(e);
-        }}
-        className={`${className} transition-all duration-700 ease-out ${loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-      />
+
+      {/* Actual High-Res Image (Aggressively Loaded only when in view) */}
+      {isInView && (
+        <img
+          src={src}
+          alt={alt}
+          onLoad={() => setLoaded(true)}
+          onError={(e) => {
+            setLoaded(true);
+            setHasError(true);
+            if (onError) onError(e);
+          }}
+          className={`${className} transition-all duration-700 ease-out ${
+            loaded 
+              ? 'opacity-100 scale-100 filter blur-0' 
+              : 'opacity-0 scale-95 filter blur-md'
+          }`}
+          referrerPolicy="no-referrer"
+        />
+      )}
     </div>
   );
 };
