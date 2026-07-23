@@ -36,7 +36,9 @@ import {
   Check,
   Share2,
   Copy,
-  Eye
+  Eye,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -591,6 +593,22 @@ export default function App() {
   const [selectedBrand, setSelectedBrand] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [shopViewMode, setShopViewMode] = useState<'grid' | 'list'>(() => {
+    try {
+      const saved = localStorage.getItem('gm_shop_view_mode');
+      return (saved === 'grid' || saved === 'list') ? saved : 'grid';
+    } catch (e) {
+      return 'grid';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gm_shop_view_mode', shopViewMode);
+    } catch (e) {
+      // ignore
+    }
+  }, [shopViewMode]);
 
   // Filters & Search (Katalog)
   const [searchTermCatalog, setSearchTermCatalog] = useState('');
@@ -1979,13 +1997,43 @@ export default function App() {
               {/* Search & Product List */}
               <div className="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-gray-100 flex-1">
                 <div className="flex flex-col mb-6 gap-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                      <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
-                        <Package className="w-5 h-5" />
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
+                          <Package className="w-5 h-5" />
+                        </div>
+                        Daftar Produk
+                      </h2>
+                      
+                      {/* View Switcher Controls */}
+                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => setShopViewMode('grid')}
+                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                            shopViewMode === 'grid'
+                              ? 'bg-white text-primary-600 shadow-xs'
+                              : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                          title="Tampilan Grid (Kotak)"
+                        >
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShopViewMode('list')}
+                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                            shopViewMode === 'list'
+                              ? 'bg-white text-primary-600 shadow-xs'
+                              : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                          title="Tampilan List (Baris)"
+                        >
+                          <ListIcon className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      Daftar Produk
-                    </h2>
+                    </div>
                     
                     <button
                       onClick={() => fetchData(true)}
@@ -2064,8 +2112,11 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Product Grid */}
-                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
+                {/* Product Grid / List Layout */}
+                <div className={shopViewMode === 'grid' 
+                  ? "grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4"
+                  : "flex flex-col gap-2.5 sm:gap-3"
+                }>
                   {paginatedProducts.length === 0 ? (
                     <div className="col-span-full py-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                       <Package className="w-16 h-16 mb-3 text-gray-300" />
@@ -2085,6 +2136,106 @@ export default function App() {
                         ? getGoogleDriveThumbnail(imgId, 320) 
                         : 'https://placehold.co/300x300/f8fafc/94a3b8?text=Gambar+belum+tersedia';
 
+                      if (shopViewMode === 'list') {
+                        return (
+                          <div key={product.id} className="border border-gray-100 bg-white p-2.5 sm:p-3.5 rounded-xl flex flex-row items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group relative">
+                            
+                            {/* Product Details (Middle) */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                <span className="text-[8px] sm:text-[9px] font-bold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded tracking-wider">
+                                  {product.sku}
+                                </span>
+                                {product.merk && product.merk !== '-' && (
+                                  <span className="text-[8px] sm:text-[9px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                    {product.merk}
+                                  </span>
+                                )}
+                              </div>
+                              <h3
+                                onClick={() => setSelectedProductDetail(product)}
+                                className="font-bold text-slate-800 text-xs sm:text-sm leading-tight mb-1.5 cursor-pointer hover:text-primary-600 hover:underline transition-colors break-words"
+                                title="Klik untuk lihat rincian & foto produk"
+                              >
+                                {product.nama}
+                              </h3>
+                              
+                              {/* Stock Indicators */}
+                              <div className="flex gap-1.5 text-[8px] sm:text-[9px] font-semibold text-slate-500">
+                                <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150">Toko: {product.stok.toko}</span>
+                                <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150">Gudang: {product.stok.gudang}</span>
+                              </div>
+                            </div>
+                            
+                            {/* Price Selector and Actions (Right) */}
+                            <div className="w-28 sm:w-44 flex flex-col justify-center shrink-0">
+                              <select
+                                value={activeTier}
+                                onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
+                                className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-1 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-no-repeat bg-[position:right_6px_center] pr-4"
+                              >
+                                <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
+                                <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
+                                <option value="partai">Prt: {formatRupiah(product.harga.partai)} /{product.unit}</option>
+                                <option value="custom">Custom</option>
+                              </select>
+                              
+                              {activeTier === 'custom' && (
+                                <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1">
+                                  <span className="bg-gray-150 text-gray-400 px-1 py-0.5 text-[8px] font-bold border-r border-gray-200">Rp</span>
+                                  <input
+                                    type="number"
+                                    value={activeCustomPrice || ''}
+                                    onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
+                                    className="w-full px-1 py-0.5 text-[9px] font-bold text-gray-800 outline-none"
+                                    placeholder="0"
+                                  />
+                                </div>
+                              )}
+
+                              <div className="transition-transform duration-150">
+                                {isInCart ? (
+                                  <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5">
+                                    <button
+                                      onClick={() => updateCartQty(product.id, -1)}
+                                      className={`active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                        cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
+                                      }`}
+                                    >
+                                      {cartItem.qty === 1 ? <Trash2 className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+                                    </button>
+                                    <div className="flex flex-col items-center justify-center">
+                                      <input
+                                        type="number"
+                                        value={cartItem.qty}
+                                        onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
+                                        className="text-[9px] sm:text-xs font-black w-6 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
+                                        min="0"
+                                      />
+                                    </div>
+                                    <button
+                                      onClick={() => updateCartQty(product.id, 1)}
+                                      className="active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
+                                    >
+                                      <Plus className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => addToCart(product.id)}
+                                    className="active-tap w-full py-1 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[9px] sm:text-xs cursor-pointer"
+                                  >
+                                    <PlusCircle className="w-3 h-3" />
+                                    <span>Tambah</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Default 'grid' render
                       return (
                         <div key={product.id} className="border border-gray-100 bg-white p-2 sm:p-3 pb-3 sm:pb-4 rounded-xl flex flex-col hover:shadow-md transition-all duration-300 group relative">
                           
