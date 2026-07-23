@@ -596,9 +596,9 @@ export default function App() {
   const [shopViewMode, setShopViewMode] = useState<'grid' | 'list'>(() => {
     try {
       const saved = localStorage.getItem('gm_shop_view_mode');
-      return (saved === 'grid' || saved === 'list') ? saved : 'grid';
+      return (saved === 'grid' || saved === 'list') ? saved : 'list';
     } catch (e) {
-      return 'grid';
+      return 'list';
     }
   });
 
