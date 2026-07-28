@@ -897,7 +897,9 @@ export default function App() {
           kategori: refHeaders.findIndex(h => h === 'kategori'),
           merk: refHeaders.findIndex(h => h === 'merk'),
           hpp: refHeaders.findIndex(h => h.includes('hpp') || h.includes('hpp akhir')),
-          eceran: refHeaders.findIndex(h => h === 'eceran'),
+          eceran: refHeaders.findIndex(h => h === 'eceran' || h.includes('eceran')),
+          grosir: refHeaders.findIndex(h => h === 'grosir' || h.includes('grosir')),
+          partai: refHeaders.findIndex(h => h === 'partai' || h.includes('partai')),
           qty: refHeaders.findIndex(h => h === 'qty' || h.includes('stok') || h.includes('quantity')),
         };
 
@@ -926,7 +928,9 @@ export default function App() {
           const merkVal = refColIdx.merk !== -1 && row[refColIdx.merk] ? row[refColIdx.merk].trim() : '-';
 
           const hppVal = refColIdx.hpp !== -1 ? parsePrice(row[refColIdx.hpp]) : 0;
-          const defaultEceranVal = refColIdx.eceran !== -1 ? parsePrice(row[refColIdx.eceran]) : 0;
+          const stockEceran = refColIdx.eceran !== -1 ? parsePrice(row[refColIdx.eceran]) : 0;
+          const stockGrosir = refColIdx.grosir !== -1 ? parsePrice(row[refColIdx.grosir]) : 0;
+          const stockPartai = refColIdx.partai !== -1 ? parsePrice(row[refColIdx.partai]) : 0;
           const qtyVal = refColIdx.qty !== -1 ? parseInt(row[refColIdx.qty] || '0') : 0;
 
           const gStoryVal = imgStoryIdx !== -1 && row[imgStoryIdx] ? row[imgStoryIdx].toString().trim() : null;
@@ -934,11 +938,17 @@ export default function App() {
           const fProdukVal = imgFotoIdx !== -1 && row[imgFotoIdx] ? row[imgFotoIdx].toString().trim() : null;
           const luFotoVal = lastUpdateFotoIdx !== -1 && row[lastUpdateFotoIdx] ? row[lastUpdateFotoIdx].toString().trim() : '-';
 
-          // Look up pricing data from hargaMap
+          // Look up pricing data from stockList columns first, falling back to hargaMap
           const priceInfo = hargaMap[skuUpper];
-          const finalEceran = priceInfo ? priceInfo.eceran : defaultEceranVal;
-          const finalGrosir = priceInfo ? priceInfo.grosir : finalEceran;
-          const finalPartai = priceInfo ? priceInfo.partai : finalEceran;
+          const finalEceran = (refColIdx.eceran !== -1 && row[refColIdx.eceran] !== undefined && row[refColIdx.eceran] !== '')
+            ? stockEceran
+            : (priceInfo ? priceInfo.eceran : 0);
+          const finalGrosir = (refColIdx.grosir !== -1 && row[refColIdx.grosir] !== undefined && row[refColIdx.grosir] !== '')
+            ? stockGrosir
+            : (priceInfo ? priceInfo.grosir : (finalEceran > 0 ? finalEceran : 0));
+          const finalPartai = (refColIdx.partai !== -1 && row[refColIdx.partai] !== undefined && row[refColIdx.partai] !== '')
+            ? stockPartai
+            : (priceInfo ? priceInfo.partai : (finalEceran > 0 ? finalEceran : 0));
 
           // Look up stock data from stockMap
           const stockInfo = stockMap[skuUpper];
