@@ -61,9 +61,16 @@ export default function ProductDetailModal({
           </div>
 
           <div>
-            <span className="text-xs font-bold text-primary-700 bg-primary-50 px-2.5 py-1 rounded-md tracking-wider">
-              {product.sku}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-primary-700 bg-primary-50 px-2.5 py-1 rounded-md tracking-wider">
+                {product.sku}
+              </span>
+              {product.variasi && (
+                <span className="text-xs font-extrabold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md tracking-wider border border-purple-100">
+                  Variasi: {product.variasi}
+                </span>
+              )}
+            </div>
             <h3 className="font-black text-xl text-gray-800 mt-2.5 leading-snug">
               {product.nama}
             </h3>

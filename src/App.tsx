@@ -67,6 +67,7 @@ import ProductDetailModal from './components/ProductDetailModal';
 const SHEET_STOCK_LIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1564332470&single=true&output=csv';
 const SHEET_HARGA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1428805476&single=true&output=csv';
 const SHEET_MASTER_STOCK_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1432842138&single=true&output=csv';
+const SHEET_VARIASI_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=2014848858&single=true&output=csv';
 const STORAGE_KEY = 'keranjangKuning_history';
 
 // Helper to fetch with a custom timeout to survive poor internet
@@ -826,26 +827,29 @@ export default function App() {
     setErrorMsg(null);
 
     try {
-      // Fetch STOCK LIST, HARGA, and master stock in parallel with timeout to survive poor networks
-      const [stockListRes, hargaRes, masterStockRes] = await Promise.all([
+      // Fetch STOCK LIST, HARGA, master stock, and VARIASI in parallel with timeout to survive poor networks
+      const [stockListRes, hargaRes, masterStockRes, variasiRes] = await Promise.all([
         fetchWithTimeout(`${SHEET_STOCK_LIST_URL}&t=${new Date().getTime()}`),
         fetchWithTimeout(`${SHEET_HARGA_URL}&t=${new Date().getTime()}`),
-        fetchWithTimeout(`${SHEET_MASTER_STOCK_URL}&t=${new Date().getTime()}`)
+        fetchWithTimeout(`${SHEET_MASTER_STOCK_URL}&t=${new Date().getTime()}`),
+        fetchWithTimeout(`${SHEET_VARIASI_URL}&t=${new Date().getTime()}`).catch(() => null)
       ]);
 
       if (!stockListRes.ok) throw new Error('Gagal mengambil data STOCK LIST');
       if (!hargaRes.ok) throw new Error('Gagal mengambil data HARGA');
       if (!masterStockRes.ok) throw new Error('Gagal mengambil data master stock');
 
-      const [stockListText, hargaText, masterStockText] = await Promise.all([
+      const [stockListText, hargaText, masterStockText, variasiText] = await Promise.all([
         stockListRes.text(),
         hargaRes.text(),
-        masterStockRes.text()
+        masterStockRes.text(),
+        variasiRes && variasiRes.ok ? variasiRes.text() : Promise.resolve('')
       ]);
 
       const stockListParsed = parseCSV(stockListText);
       const hargaParsed = parseCSV(hargaText);
       const masterStockParsed = parseCSV(masterStockText);
+      const variasiParsed = variasiText ? parseCSV(variasiText) : [];
 
       // 1. Build lookup map from HARGA sheet
       const hargaMap: Record<string, { eceran: number; grosir: number; partai: number }> = {};
@@ -885,6 +889,64 @@ export default function App() {
         }
       }
 
+      // 2.5 Build lookup map from VARIASI sheet
+      const variasiMap: Record<string, { variasiName: string; imageIds: string[]; lastUpdateStory: string }> = {};
+      const variasiGroupMap: Record<string, { imageIds: string[]; lastUpdateStory: string }> = {};
+
+      if (variasiParsed.length > 0) {
+        const vHeaders = variasiParsed[0].map(h => h.toLowerCase().trim());
+        const vCodeIdx = vHeaders.findIndex(h => h === 'code' || h === 'sku' || h.includes('kode'));
+        const vVarIdx = vHeaders.findIndex(h => h === 'variasi' || h.includes('variasi'));
+
+        const codeCol = vCodeIdx !== -1 ? vCodeIdx : 0;
+        const varCol = vVarIdx !== -1 ? vVarIdx : 3;
+
+        for (let i = 1; i < variasiParsed.length; i++) {
+          const row = variasiParsed[i];
+          if (!row || row.length === 0) continue;
+          const skuRaw = row[codeCol] ? row[codeCol].toString().trim() : '';
+          const varNameRaw = row[varCol] ? row[varCol].toString().trim() : '';
+          if (!skuRaw) continue;
+
+          const skuUpper = skuRaw.toUpperCase();
+          const groupUpper = varNameRaw.toUpperCase();
+
+          const imageIds: string[] = [];
+          let dateVal = '-';
+
+          for (let j = 4; j < row.length; j++) {
+            const cellVal = row[j] ? row[j].toString().trim() : '';
+            if (!cellVal) continue;
+            const m = cellVal.match(/[-\w]{25,}/);
+            if (m) {
+              if (!imageIds.includes(m[0])) imageIds.push(m[0]);
+            } else if (cellVal.includes('-') || cellVal.includes(':')) {
+              dateVal = cellVal;
+            }
+          }
+
+          if (varNameRaw) {
+            variasiMap[skuUpper] = {
+              variasiName: varNameRaw,
+              imageIds,
+              lastUpdateStory: dateVal
+            };
+
+            if (!variasiGroupMap[groupUpper]) {
+              variasiGroupMap[groupUpper] = { imageIds: [], lastUpdateStory: '-' };
+            }
+            imageIds.forEach(id => {
+              if (!variasiGroupMap[groupUpper].imageIds.includes(id)) {
+                variasiGroupMap[groupUpper].imageIds.push(id);
+              }
+            });
+            if (dateVal !== '-' && variasiGroupMap[groupUpper].lastUpdateStory === '-') {
+              variasiGroupMap[groupUpper].lastUpdateStory = dateVal;
+            }
+          }
+        }
+      }
+
       // 3. Build primary product list based strictly on STOCK LIST
       let initialProducts: Product[] = [];
       if (stockListParsed.length > 0) {
@@ -914,7 +976,7 @@ export default function App() {
           return match ? match[0] : null;
         };
 
-        initialProducts = stockListParsed.slice(1).map((row, index) => {
+        initialProducts = stockListParsed.slice(1).map((row, index): Product | null => {
           const skuRaw = refColIdx.code !== -1 && row[refColIdx.code] ? row[refColIdx.code].toString().trim() : '';
           if (!skuRaw) return null;
           const skuUpper = skuRaw.toUpperCase();
@@ -937,6 +999,35 @@ export default function App() {
           const luStoryVal = lastUpdateStoryIdx !== -1 && row[lastUpdateStoryIdx] ? row[lastUpdateStoryIdx].toString().trim() : '-';
           const fProdukVal = imgFotoIdx !== -1 && row[imgFotoIdx] ? row[imgFotoIdx].toString().trim() : null;
           const luFotoVal = lastUpdateFotoIdx !== -1 && row[lastUpdateFotoIdx] ? row[lastUpdateFotoIdx].toString().trim() : '-';
+
+          const stockListStoryId = extractId(gStoryVal);
+
+          // Check variasi info for this SKU
+          const variasiInfo = variasiMap[skuUpper];
+          const variasiGroup = variasiInfo ? variasiInfo.variasiName : undefined;
+
+          let finalStoryId = stockListStoryId;
+          let finalLuStory = luStoryVal;
+
+          if (variasiInfo) {
+            if (!finalStoryId && variasiInfo.imageIds.length > 0) {
+              finalStoryId = variasiInfo.imageIds[0];
+            }
+            if ((finalLuStory === '-' || !finalLuStory) && variasiInfo.lastUpdateStory !== '-') {
+              finalLuStory = variasiInfo.lastUpdateStory;
+            }
+
+            const gUpper = variasiGroup!.toUpperCase();
+            if (!variasiGroupMap[gUpper]) {
+              variasiGroupMap[gUpper] = { imageIds: [], lastUpdateStory: '-' };
+            }
+            if (finalStoryId && !variasiGroupMap[gUpper].imageIds.includes(finalStoryId)) {
+              variasiGroupMap[gUpper].imageIds.push(finalStoryId);
+            }
+            if (finalLuStory !== '-' && variasiGroupMap[gUpper].lastUpdateStory === '-') {
+              variasiGroupMap[gUpper].lastUpdateStory = finalLuStory;
+            }
+          }
 
           // Look up pricing data from stockList columns first, falling back to hargaMap
           const priceInfo = hargaMap[skuUpper];
@@ -961,8 +1052,9 @@ export default function App() {
             sku: skuRaw,
             kategori: kategoriVal,
             merk: merkVal,
-            gambarStoryId: extractId(gStoryVal),
-            lastUpdateStory: luStoryVal,
+            variasi: variasiGroup,
+            gambarStoryId: finalStoryId,
+            lastUpdateStory: finalLuStory,
             fotoProdukId: extractId(fProdukVal),
             lastUpdateFoto: luFotoVal,
             unit: unitVal,
@@ -978,6 +1070,22 @@ export default function App() {
             }
           };
         }).filter((p): p is Product => p !== null);
+
+        // Pass 2: Force uniform group story image for ALL products belonging to the same variation group
+        initialProducts.forEach(p => {
+          if (p.variasi) {
+            const gUpper = p.variasi.toUpperCase();
+            const groupData = variasiGroupMap[gUpper];
+            if (groupData) {
+              if (groupData.imageIds.length > 0) {
+                p.gambarStoryId = groupData.imageIds[0];
+              }
+              if (groupData.lastUpdateStory !== '-') {
+                p.lastUpdateStory = groupData.lastUpdateStory;
+              }
+            }
+          }
+        });
       }
 
       setProducts(initialProducts);
@@ -1044,7 +1152,7 @@ export default function App() {
   const filteredProducts = useMemo(() => {
     const query = searchTerm.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
     return products.filter(p => {
-      const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w));
+      const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w) || (p.variasi && p.variasi.toLowerCase().includes(w)));
       const matchCat = !selectedCategory || p.kategori === selectedCategory;
       const matchBrand = !selectedBrand || p.merk === selectedBrand;
       return matchSearch && matchCat && matchBrand;
@@ -1063,7 +1171,7 @@ export default function App() {
     const catalogOnly = products;
     const query = searchTermCatalog.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
     const filtered = catalogOnly.filter(p => {
-      const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w));
+      const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w) || (p.variasi && p.variasi.toLowerCase().includes(w)));
       const matchCat = catalogCategories.length === 0 || catalogCategories.includes(p.kategori);
       const matchBrand = catalogBrands.length === 0 || catalogBrands.includes(p.merk);
       return matchSearch && matchCat && matchBrand;
@@ -1855,12 +1963,6 @@ export default function App() {
               <ShoppingCart className="text-primary-900 w-6 h-6" />
             </div>
             <h1 className="text-xl font-extrabold text-gray-800 tracking-tight hidden sm:block">Keranjang Kuning</h1>
-            {!isOnline && (
-              <span className="flex items-center gap-1.5 bg-red-50 text-red-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                Mode Offline
-              </span>
-            )}
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3">
@@ -2792,8 +2894,13 @@ export default function App() {
                             }}
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
-                          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur text-gray-800 text-[10px] font-bold px-2 py-1 rounded shadow-sm border border-gray-100">
-                            {p.sku}
+                          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur text-gray-800 text-[10px] font-bold px-2 py-1 rounded shadow-sm border border-gray-100 flex items-center gap-1">
+                            <span>{p.sku}</span>
+                            {p.variasi && (
+                              <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-extrabold ml-1">
+                                {p.variasi}
+                              </span>
+                            )}
                           </div>
                           <div className="absolute bottom-2 right-2 bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-md pointer-events-none">
                             <Maximize2 className="w-4 h-4" />

@@ -4,6 +4,7 @@ export interface Product {
   sku: string;
   kategori: string;
   merk: string;
+  variasi?: string;
   gambarStoryId: string | null;
   lastUpdateStory: string;
   fotoProdukId: string | null;
