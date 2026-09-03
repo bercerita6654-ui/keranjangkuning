@@ -70,24 +70,29 @@ const SHEET_MASTER_STOCK_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1
 const SHEET_VARIASI_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=2014848858&single=true&output=csv';
 const STORAGE_KEY = 'keranjangKuning_history';
 
-// Helper to fetch with a custom timeout to survive poor internet
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 6000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error: any) {
-    clearTimeout(id);
-    if (error.name === 'AbortError') {
-      throw new Error('Koneksi lambat atau terputus (Timeout)');
+// Helper to fetch with automatic retry and longer timeout to survive slow mobile connections
+const fetchWithRetry = async (url: string, options: RequestInit = {}, maxRetries = 2, timeoutMs = 25000): Promise<Response> => {
+  let lastError: any;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(id);
+      if (response.ok) return response;
+      throw new Error(`HTTP ${response.status}`);
+    } catch (error: any) {
+      clearTimeout(id);
+      lastError = error;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      }
     }
-    throw error;
   }
+  throw lastError || new Error('Koneksi internet lambat atau terputus');
 };
 
 // Helper to convert Image to Base64
@@ -166,8 +171,8 @@ const CatalogImage = ({ src, alt, className, onError }: { src: string; alt: stri
         <div className="bg-slate-100 p-3 rounded-full mb-1.5 text-slate-400">
           <ImageIcon className="w-6 h-6" />
         </div>
-        <span className="text-[10px] font-bold text-gray-500 leading-tight block">Gambar Offline</span>
-        <span className="text-[8px] text-gray-400 mt-0.5 leading-tight block">Hubungkan ke internet untuk memuat gambar</span>
+        <span className="text-[10px] font-bold text-gray-500 leading-tight block">Gambar Belum Tersedia</span>
+        <span className="text-[8px] text-gray-400 mt-0.5 leading-tight block">Periksa koneksi atau segarkan halaman</span>
       </div>
     );
   }
@@ -577,14 +582,33 @@ export default function App() {
   // Navigation & View
   const [activeTab, setActiveTab] = useState<'shop' | 'catalog'>('shop');
   
+  // Core Data Lists with instant cache initialization to ensure data is never missing
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('gm_offline_products');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+
   // Loading & Error States
-  const [loading, setLoading] = useState(true);
-  const [loadingText, setLoadingText] = useState('Memuat Produk Utama...');
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const cached = localStorage.getItem('gm_offline_products');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch (e) {}
+    return true;
+  });
+  const [loadingText, setLoadingText] = useState('Memuat Produk...');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
-  // Core Data Lists
-  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
@@ -621,9 +645,27 @@ export default function App() {
   const [windowCatalogSource, setWindowCatalogSource] = useState<'story' | 'foto'>('story');
   const [catalogCart, setCatalogCart] = useState<string[]>([]);
 
-  // Dropdowns Lists populated dynamically
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
-  const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+  // Dropdowns Lists populated dynamically with cache fallback
+  const [availableCategories, setAvailableCategories] = useState<string[]>(() => {
+    try {
+      const cached = localStorage.getItem('gm_offline_categories');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [availableBrands, setAvailableBrands] = useState<string[]>(() => {
+    try {
+      const cached = localStorage.getItem('gm_offline_brands');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
 
   // Prices State (Tiers, Custom pricing)
   const [globalPriceTier, setGlobalPriceTier] = useState<'eceran' | 'grosir' | 'partai'>('eceran');
@@ -746,11 +788,9 @@ export default function App() {
     // Handle online/offline events
     const handleOnline = () => {
       setIsOnline(true);
-      showToast("Kembali online! Anda dapat menyegarkan data.", "success");
     };
     const handleOffline = () => {
       setIsOnline(false);
-      showToast("Koneksi terputus. Aplikasi berjalan dalam Mode Offline.", "error");
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -827,22 +867,30 @@ export default function App() {
     setErrorMsg(null);
 
     try {
-      // Fetch STOCK LIST, HARGA, master stock, and VARIASI in parallel with timeout to survive poor networks
+      // Fetch STOCK LIST, HARGA, master stock, and VARIASI in parallel with retry to survive poor networks
+      const timestamp = new Date().getTime();
       const [stockListRes, hargaRes, masterStockRes, variasiRes] = await Promise.all([
-        fetchWithTimeout(`${SHEET_STOCK_LIST_URL}&t=${new Date().getTime()}`),
-        fetchWithTimeout(`${SHEET_HARGA_URL}&t=${new Date().getTime()}`),
-        fetchWithTimeout(`${SHEET_MASTER_STOCK_URL}&t=${new Date().getTime()}`),
-        fetchWithTimeout(`${SHEET_VARIASI_URL}&t=${new Date().getTime()}`).catch(() => null)
+        fetchWithRetry(`${SHEET_STOCK_LIST_URL}&t=${timestamp}`),
+        fetchWithRetry(`${SHEET_HARGA_URL}&t=${timestamp}`).catch((err) => {
+          console.warn("Gagal memuat sheet HARGA, menggunakan harga dari stock list:", err);
+          return null;
+        }),
+        fetchWithRetry(`${SHEET_MASTER_STOCK_URL}&t=${timestamp}`).catch((err) => {
+          console.warn("Gagal memuat sheet master stock, menggunakan stock dari stock list:", err);
+          return null;
+        }),
+        fetchWithRetry(`${SHEET_VARIASI_URL}&t=${timestamp}`).catch((err) => {
+          console.warn("Gagal memuat sheet VARIASI:", err);
+          return null;
+        })
       ]);
 
-      if (!stockListRes.ok) throw new Error('Gagal mengambil data STOCK LIST');
-      if (!hargaRes.ok) throw new Error('Gagal mengambil data HARGA');
-      if (!masterStockRes.ok) throw new Error('Gagal mengambil data master stock');
+      if (!stockListRes || !stockListRes.ok) throw new Error('Gagal mengambil data STOCK LIST');
 
       const [stockListText, hargaText, masterStockText, variasiText] = await Promise.all([
         stockListRes.text(),
-        hargaRes.text(),
-        masterStockRes.text(),
+        hargaRes && hargaRes.ok ? hargaRes.text() : Promise.resolve(''),
+        masterStockRes && masterStockRes.ok ? masterStockRes.text() : Promise.resolve(''),
         variasiRes && variasiRes.ok ? variasiRes.text() : Promise.resolve('')
       ]);
 
@@ -1116,7 +1164,6 @@ export default function App() {
       }
 
     } catch (err: any) {
-      // Mark as offline / bad connection on failure
       setIsOnline(false);
       
       // Try to load from offline cache
@@ -1134,17 +1181,23 @@ export default function App() {
 
             setLoading(false);
             setIsRefreshing(false);
-            showToast("Mode Offline: Menggunakan data produk lokal yang tersimpan.", "error");
+            if (refresh) {
+              showToast("Menggunakan data produk yang tersimpan.", "success");
+            }
             return;
           }
         }
       } catch (cacheErr) {
-        console.error("Gagal memuat cache offline:", cacheErr);
+        console.error("Gagal memuat cache tersimpan:", cacheErr);
       }
 
       setLoading(false);
       setIsRefreshing(false);
-      setErrorMsg(err.message || 'Terjadi kesalahan saat memuat data');
+      if (products.length === 0) {
+        setErrorMsg(err.message || 'Koneksi lambat atau terputus saat memuat data');
+      } else {
+        showToast("Koneksi tidak stabil. Menampilkan data tersimpan.", "error");
+      }
     }
   };
 
@@ -1936,11 +1989,62 @@ export default function App() {
 
       {/* Error Overlay */}
       {errorMsg && (
-        <div className="fixed inset-0 bg-gray-50 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl shadow-lg max-w-md w-full text-center">
-            <AlertTriangle className="mx-auto w-12 h-12 mb-3 text-red-500" />
-            <h2 className="font-bold text-lg mb-2">Terjadi Kesalahan</h2>
-            <p className="text-sm">{errorMsg}</p>
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 text-gray-800 p-6 rounded-3xl shadow-2xl max-w-md w-full text-center">
+            <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-100">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+            <h2 className="font-extrabold text-xl text-gray-900 mb-2">Koneksi Tidak Stabil</h2>
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              {errorMsg}
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => {
+                  setErrorMsg(null);
+                  fetchData(true);
+                }}
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-sm shadow-md transition-all active-tap flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Coba Muat Ulang Data</span>
+              </button>
+
+              {(() => {
+                let hasCache = false;
+                try {
+                  const cached = localStorage.getItem('gm_offline_products');
+                  if (cached && JSON.parse(cached).length > 0) hasCache = true;
+                } catch (e) {}
+                if (!hasCache) return null;
+
+                return (
+                  <button
+                    onClick={() => {
+                      try {
+                        const cached = localStorage.getItem('gm_offline_products');
+                        if (cached) {
+                          setProducts(JSON.parse(cached));
+                          setErrorMsg(null);
+                          setLoading(false);
+                          showToast("Menampilkan data produk tersimpan.", "success");
+                        }
+                      } catch (e) {}
+                    }}
+                    className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    Buka dengan Data Tersimpan
+                  </button>
+                );
+              })()}
+
+              <button
+                onClick={() => setErrorMsg(null)}
+                className="text-xs text-gray-400 hover:text-gray-600 py-1 transition-colors cursor-pointer"
+              >
+                Tutup Sementara
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2810,7 +2914,13 @@ export default function App() {
                     <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1.5">Tampilkan Harga</label>
                     <select
                       value={pdfPrice}
-                      onChange={(e) => setPdfPrice(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPdfPrice(val);
+                        if (val === 'eceran' || val === 'grosir' || val === 'partai') {
+                          setGlobalPriceTier(val);
+                        }
+                      }}
                       className="w-full text-xs font-bold text-gray-700 border border-blue-200 rounded-lg py-2 px-2.5 bg-white focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
                     >
                       <option value="active">Harga Aktif (Sesuai Pilihan)</option>
@@ -2852,7 +2962,12 @@ export default function App() {
                     const thumbnailUrl = getGoogleDriveThumbnail(imgId, 320);
                     const isSelected = catalogCart.includes(p.id);
                     
-                    const activeTier = catalogTiers[p.id] || globalPriceTier;
+                    const isPriceHidden = pdfPrice === 'none';
+                    const effectiveTier: 'eceran' | 'grosir' | 'partai' | 'custom' = 
+                      (pdfPrice === 'eceran' || pdfPrice === 'grosir' || pdfPrice === 'partai')
+                        ? pdfPrice
+                        : (catalogTiers[p.id] || globalPriceTier);
+                    
                     const activeCustomPrice = catalogCustomPrices[p.id] || 0;
                     
                     const targetDate = windowCatalogSource === 'story' ? p.lastUpdateStory : p.lastUpdateFoto;
@@ -2918,7 +3033,9 @@ export default function App() {
                           )}
 
                           {(() => {
-                            const basePrice = activeTier === 'custom' ? (catalogCustomPrices[p.id] || 0) : (p.harga ? p.harga[activeTier] : 0);
+                            const basePrice = isPriceHidden 
+                              ? 0 
+                              : (effectiveTier === 'custom' ? (catalogCustomPrices[p.id] || 0) : (p.harga ? p.harga[effectiveTier] : 0));
                             const promoType = catalogPromoType[p.id] || 'none';
                             const promoValue = catalogPromoValue[p.id] || 0;
 
@@ -2927,17 +3044,36 @@ export default function App() {
                             let originalPrice = 0;
                             let promoLabel = '';
 
-                            if (promoType === 'percent' && promoValue > 0) {
-                              hasPromo = true;
-                              originalPrice = basePrice;
-                              finalPrice = Math.round(basePrice * (1 - promoValue / 100));
-                              promoLabel = `-${promoValue}%`;
-                            } else if (promoType === 'strikethrough' && promoValue > 0) {
-                              hasPromo = true;
-                              originalPrice = basePrice;
-                              finalPrice = promoValue;
-                              promoLabel = 'PROMO';
+                            if (!isPriceHidden) {
+                              if (promoType === 'percent' && promoValue > 0) {
+                                hasPromo = true;
+                                originalPrice = basePrice;
+                                finalPrice = Math.round(basePrice * (1 - promoValue / 100));
+                                promoLabel = `-${promoValue}%`;
+                              } else if (promoType === 'strikethrough' && promoValue > 0) {
+                                hasPromo = true;
+                                originalPrice = basePrice;
+                                finalPrice = promoValue;
+                                promoLabel = 'PROMO';
+                              }
                             }
+
+                            if (isPriceHidden) {
+                              return (
+                                <div className="mb-2 bg-slate-50 p-2 rounded-xl border border-slate-200/80 flex flex-col justify-center min-h-[48px]">
+                                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">Tampilan Harga</span>
+                                  <span className="text-xs font-semibold text-gray-500 italic">Tanpa Harga (Tersembunyi)</span>
+                                </div>
+                              );
+                            }
+
+                            const tierLabel = effectiveTier === 'eceran'
+                              ? 'Harga Eceran'
+                              : effectiveTier === 'grosir'
+                              ? 'Harga Grosir'
+                              : effectiveTier === 'partai'
+                              ? 'Harga Partai'
+                              : 'Harga Custom';
 
                             return (
                               <div className="mb-2 bg-red-50/20 p-2 rounded-xl border border-red-100/50 flex flex-col justify-center min-h-[48px]">
@@ -2957,7 +3093,7 @@ export default function App() {
                                   </>
                                 ) : (
                                   <div className="flex flex-col">
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">Harga Normal</span>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">{tierLabel}</span>
                                     <span className="text-sm font-black text-blue-600 leading-none">
                                       {formatRupiah(basePrice)}
                                     </span>
@@ -2968,8 +3104,14 @@ export default function App() {
                           })()}
                           
                           <select
-                            value={activeTier}
-                            onChange={(e) => handleProductPriceTierChange(p.id, e.target.value as any)}
+                            value={effectiveTier}
+                            onChange={(e) => {
+                              const newTier = e.target.value as any;
+                              handleProductPriceTierChange(p.id, newTier);
+                              if (pdfPrice !== 'active' && pdfPrice !== newTier) {
+                                setPdfPrice('active');
+                              }
+                            }}
                             className="w-full text-[10px] font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded p-1.5 mb-1.5 appearance-none outline-none focus:ring-1 focus:ring-blue-400 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-no-repeat bg-[position:right_8px_center] cursor-pointer"
                           >
                             <option value="eceran">Eceran: {formatRupiah(p.harga.eceran)}</option>
@@ -2978,7 +3120,7 @@ export default function App() {
                             <option value="custom">Harga Custom</option>
                           </select>
                           
-                          {activeTier === 'custom' && (
+                          {effectiveTier === 'custom' && (
                             <div className="flex items-center bg-white border border-gray-300 rounded overflow-hidden shadow-sm mb-1.5">
                               <span className="bg-gray-100 text-gray-500 px-2 py-1 text-[10px] font-bold border-r border-gray-300">Rp</span>
                               <input
@@ -3217,14 +3359,20 @@ export default function App() {
                         <label className="block text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">Opsi Harga</label>
                         <select
                           value={pdfPrice}
-                          onChange={(e) => setPdfPrice(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPdfPrice(val);
+                            if (val === 'eceran' || val === 'grosir' || val === 'partai') {
+                              setGlobalPriceTier(val);
+                            }
+                          }}
                           className="w-full text-xs font-semibold text-gray-700 border border-blue-200 rounded-lg py-1.5 px-2 bg-white focus:ring-1 focus:ring-blue-400 outline-none cursor-pointer shadow-sm"
                         >
-                          <option value="active">Harga Aktif</option>
+                          <option value="active">Harga Aktif (Sesuai Pilihan)</option>
                           <option value="none">Tanpa Harga</option>
-                          <option value="eceran">Eceran</option>
-                          <option value="grosir">Grosir</option>
-                          <option value="partai">Partai</option>
+                          <option value="eceran">Harga Eceran</option>
+                          <option value="grosir">Harga Grosir</option>
+                          <option value="partai">Harga Partai</option>
                         </select>
                       </div>
                     </div>
@@ -3247,17 +3395,28 @@ export default function App() {
                         const imgId = windowCatalogSource === 'story' ? p.gambarStoryId : p.fotoProdukId;
                         const thumbnailUrl = getGoogleDriveThumbnail(imgId, 120);
                         
-                        const activeTier = catalogTiers[p.id] || globalPriceTier;
+                        const isPriceHidden = pdfPrice === 'none';
+                        const effectiveTier: 'eceran' | 'grosir' | 'partai' | 'custom' = 
+                          (pdfPrice === 'eceran' || pdfPrice === 'grosir' || pdfPrice === 'partai')
+                            ? pdfPrice
+                            : (catalogTiers[p.id] || globalPriceTier);
+
                         const activeCustomPrice = catalogCustomPrices[p.id] || 0;
-                        const priceVal = activeTier === 'custom' ? activeCustomPrice : (p.harga ? p.harga[activeTier] : 0);
+                        const priceVal = isPriceHidden 
+                          ? 0 
+                          : (effectiveTier === 'custom' 
+                              ? activeCustomPrice 
+                              : (p.harga ? p.harga[effectiveTier] : 0));
 
                         const promoType = catalogPromoType[p.id] || 'none';
                         const promoValue = catalogPromoValue[p.id] || 0;
                         let finalPrice = priceVal;
-                        if (promoType === 'percent' && promoValue > 0) {
-                          finalPrice = Math.round(priceVal * (1 - promoValue / 100));
-                        } else if (promoType === 'strikethrough' && promoValue > 0) {
-                          finalPrice = promoValue;
+                        if (!isPriceHidden) {
+                          if (promoType === 'percent' && promoValue > 0) {
+                            finalPrice = Math.round(priceVal * (1 - promoValue / 100));
+                          } else if (promoType === 'strikethrough' && promoValue > 0) {
+                            finalPrice = promoValue;
+                          }
                         }
 
                         return (
@@ -3278,7 +3437,11 @@ export default function App() {
                               </h4>
                               <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 capitalize">
                                 <span>Harga:</span>
-                                <span className="text-blue-600 font-bold">{formatRupiah(finalPrice)}</span>
+                                {isPriceHidden ? (
+                                  <span className="text-gray-400 italic">Tanpa Harga</span>
+                                ) : (
+                                  <span className="text-blue-600 font-bold">{formatRupiah(finalPrice)}</span>
+                                )}
                               </div>
                             </div>
                           </div>

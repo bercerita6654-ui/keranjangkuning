@@ -1,4 +1,6 @@
-export function parseCSV(text: string): string[][] {
+export function parseCSV(rawText: string): string[][] {
+  if (!rawText) return [];
+  const text = rawText.charCodeAt(0) === 0xFEFF ? rawText.slice(1) : rawText;
   const lines: string[][] = [];
   let row: string[] = [""];
   let inQuotes = false;
