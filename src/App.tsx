@@ -836,9 +836,9 @@ export default function App() {
   // Adjust PDF grid option when source changes
   useEffect(() => {
     if (windowCatalogSource === 'story') {
-      setPdfGrid('2x2');
-    } else {
-      setPdfGrid('4x4');
+      if (pdfGrid !== '2x2' && pdfGrid !== '4x4') {
+        setPdfGrid('2x2');
+      }
     }
     setCatalogCart([]);
     currentPageCatalog && setCurrentPageCatalog(1);
@@ -2891,6 +2891,7 @@ export default function App() {
                         </>
                       ) : (
                         <>
+                          <option value="2x2">2 Baris & 2 Kolom (4 Gbr)</option>
                           <option value="4x4">4 Baris & 4 Kolom (16 Gbr)</option>
                           <option value="6x6">6 Baris & 6 Kolom (36 Gbr)</option>
                           <option value="8x8">8 Baris & 8 Kolom (64 Gbr)</option>
@@ -3347,6 +3348,7 @@ export default function App() {
                             </>
                           ) : (
                             <>
+                              <option value="2x2">2x2 (4 Gbr)</option>
                               <option value="4x4">4x4 (16 Gbr)</option>
                               <option value="6x6">6x6 (36 Gbr)</option>
                               <option value="8x8">8x8 (64 Gbr)</option>
