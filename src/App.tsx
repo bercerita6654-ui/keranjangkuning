@@ -38,7 +38,8 @@ import {
   Copy,
   Eye,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  RotateCcw
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -1357,6 +1358,20 @@ export default function App() {
     } else {
       setCatalogCustomPrices(prev => ({ ...prev, [productId]: val }));
     }
+  };
+
+  // Start a fresh new order, clearing active cart and customer details
+  const handleNewOrder = () => {
+    if (cart.length === 0 && !customerName && !customerPhone && !customerNote) {
+      showToast("Keranjang sudah kosong dan siap untuk pesanan baru.", "success");
+      return;
+    }
+    
+    setCart([]);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerNote('');
+    showToast("Pesanan baru dimulai. Keranjang belanja telah dibersihkan.", "success");
   };
 
   // Mobile cart drawer state
@@ -3504,6 +3519,14 @@ export default function App() {
                   <span className="truncate">Rincian Pesanan</span>
                 </h2>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleNewOrder}
+                    className="flex items-center gap-1 font-bold text-xs bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1.5 rounded-xl border border-gray-200 hover:border-red-200 shadow-xs transition-colors active-tap cursor-pointer"
+                    title="Mulai Pesanan Baru (Kosongkan Keranjang & Reset Data)"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-primary-600 group-hover:text-red-600" />
+                    <span>New Order</span>
+                  </button>
                   {cartQty > 0 && (
                     <span className="bg-primary-400 text-primary-900 text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap">
                       {cartQty} Barang
@@ -3646,11 +3669,24 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
+                  <button
+                    disabled={cart.length === 0 && !customerName && !customerPhone && !customerNote}
+                    onClick={handleNewOrder}
+                    className={`active-tap px-3 py-3.5 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-all border ${
+                      cart.length === 0 && !customerName && !customerPhone && !customerNote
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                        : 'bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 border-gray-200 hover:border-red-200 cursor-pointer shadow-xs'
+                    }`}
+                    title="Mulai Pesanan Baru (Kosongkan Keranjang & Reset Data)"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">New Order</span>
+                  </button>
                   <button
                     disabled={cart.length === 0}
                     onClick={() => saveToHistory(true)}
-                    className={`active-tap w-1/3 py-3.5 rounded-xl font-bold text-sm flex justify-center items-center gap-1.5 transition-all border ${
+                    className={`active-tap flex-1 py-3.5 rounded-xl font-bold text-sm flex justify-center items-center gap-1.5 transition-all border ${
                       cart.length === 0
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
                         : 'bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-200 cursor-pointer shadow-sm'
@@ -3669,13 +3705,13 @@ export default function App() {
                       }
                       setCheckoutOpen(true);
                     }}
-                    className={`active-tap w-2/3 py-3.5 rounded-xl font-bold text-lg flex justify-center items-center gap-2 transition-all ${
+                    className={`active-tap flex-[2] py-3.5 rounded-xl font-bold text-base sm:text-lg flex justify-center items-center gap-2 transition-all ${
                       cart.length === 0
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
                         : 'bg-primary-400 hover:bg-primary-500 text-primary-900 shadow-lg shadow-primary-400/30 cursor-pointer'
                     }`}
                   >
-                    Checkout Sekarang
+                    Checkout
                   </button>
                 </div>
               </div>
