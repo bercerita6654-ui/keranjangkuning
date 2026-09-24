@@ -64,6 +64,7 @@ import BarcodeScanner from './components/BarcodeScanner';
 import CheckoutModal from './components/CheckoutModal';
 import HistoryModal from './components/HistoryModal';
 import ProductDetailModal from './components/ProductDetailModal';
+import { GlobalMartLogo } from './components/GlobalMartLogo';
 
 const SHEET_STOCK_LIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1564332470&single=true&output=csv';
 const SHEET_HARGA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1428805476&single=true&output=csv';
@@ -2078,10 +2079,7 @@ export default function App() {
       <header className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-[90] border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="bg-primary-400 p-2 rounded-xl">
-              <ShoppingCart className="text-primary-900 w-6 h-6" />
-            </div>
-            <h1 className="text-xl font-extrabold text-gray-800 tracking-tight hidden sm:block">Keranjang Kuning</h1>
+            <GlobalMartLogo className="h-10 sm:h-12 w-auto" />
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3">
