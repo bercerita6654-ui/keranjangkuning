@@ -70,7 +70,78 @@ const SHEET_STOCK_LIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT
 const SHEET_HARGA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1428805476&single=true&output=csv';
 const SHEET_MASTER_STOCK_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=1432842138&single=true&output=csv';
 const SHEET_VARIASI_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxz1GPm7QU9IS1yBiSjvIdNTLUsvvplOCyT_R3XH4O-LuVbHoY_bXn1LTH5lpnlolJ29BhUgEdnFm/pub?gid=2014848858&single=true&output=csv';
+const SHEET_ORDER_KHUSUS_URL = 'https://docs.google.com/spreadsheets/d/1olil_je3rWoIn3SdZSO6kHIHGNxbUOtl7BphNTjxeRs/export?format=csv&gid=0';
 const STORAGE_KEY = 'keranjangKuning_history';
+
+// Helper to parse Orderan Khusus CSV sheet
+const parseOrderKhususSheet = (rawText: string): Product[] => {
+  if (!rawText || !rawText.trim()) return [];
+  const parsed = parseCSV(rawText);
+  if (parsed.length <= 1) return [];
+
+  const headers = parsed[0].map(h => h.toLowerCase().trim());
+  const colIdx = {
+    sku: headers.findIndex(h => h === 'sku' || h === 'code' || h.includes('kode')),
+    nama: headers.findIndex(h => h.includes('nama') || h.includes('deskripsi') || h === 'description'),
+    unit: headers.findIndex(h => h === 'unit' || h.includes('satuan')),
+    kategori: headers.findIndex(h => h.includes('kategori')),
+    merk: headers.findIndex(h => h.includes('merk') || h.includes('brand')),
+    hpp: headers.findIndex(h => h.includes('hpp')),
+    eceran: headers.findIndex(h => h === 'eceran' || h.includes('eceran')),
+    grosir: headers.findIndex(h => h === 'grosir' || h.includes('grosir')),
+    partai: headers.findIndex(h => h === 'partai' || h.includes('partai')),
+    stokGudang: headers.findIndex(h => h.includes('gudang')),
+    stokToko: headers.findIndex(h => h.includes('toko')),
+    totalStok: headers.findIndex(h => h.includes('total stok') || h.includes('stok') || h.includes('qty')),
+  };
+
+  return parsed.slice(1).map((row): Product | null => {
+    const skuRaw = colIdx.sku !== -1 && row[colIdx.sku] ? row[colIdx.sku].toString().trim() : '';
+    if (!skuRaw) return null;
+
+    const namaVal = colIdx.nama !== -1 && row[colIdx.nama] ? row[colIdx.nama].trim() : '-';
+    if (!namaVal || namaVal === '-') return null;
+
+    const unitVal = colIdx.unit !== -1 && row[colIdx.unit] ? row[colIdx.unit].trim() : 'PCS';
+    const kategoriVal = colIdx.kategori !== -1 && row[colIdx.kategori] ? row[colIdx.kategori].trim() : 'Orderan Khusus';
+    const merkVal = colIdx.merk !== -1 && row[colIdx.merk] ? row[colIdx.merk].trim() : '-';
+
+    const hppVal = colIdx.hpp !== -1 ? parsePrice(row[colIdx.hpp]) : 0;
+    const eceranVal = colIdx.eceran !== -1 ? parsePrice(row[colIdx.eceran]) : 0;
+    const grosirVal = colIdx.grosir !== -1 ? parsePrice(row[colIdx.grosir]) : (eceranVal > 0 ? eceranVal : 0);
+    const partaiVal = colIdx.partai !== -1 ? parsePrice(row[colIdx.partai]) : (eceranVal > 0 ? eceranVal : 0);
+
+    const gudangVal = colIdx.stokGudang !== -1 ? parseInt(row[colIdx.stokGudang]?.replace(/[^0-9-]/g, '') || '0') : 0;
+    const tokoVal = colIdx.stokToko !== -1 ? parseInt(row[colIdx.stokToko]?.replace(/[^0-9-]/g, '') || '0') : 0;
+    const totalStokVal = colIdx.totalStok !== -1 ? parseInt(row[colIdx.totalStok]?.replace(/[^0-9-]/g, '') || '0') : 0;
+
+    const finalToko = tokoVal || totalStokVal || 0;
+    const finalGudang = gudangVal || 0;
+
+    return {
+      id: skuRaw,
+      nama: namaVal,
+      sku: skuRaw,
+      kategori: kategoriVal,
+      merk: merkVal,
+      gambarStoryId: null,
+      lastUpdateStory: '-',
+      fotoProdukId: null,
+      lastUpdateFoto: '-',
+      unit: unitVal,
+      stok: {
+        gudang: isNaN(finalGudang) ? 0 : finalGudang,
+        toko: isNaN(finalToko) ? 0 : finalToko,
+      },
+      harga: {
+        hpp: hppVal,
+        eceran: eceranVal,
+        grosir: grosirVal,
+        partai: partaiVal,
+      }
+    };
+  }).filter((p): p is Product => p !== null);
+};
 
 // Helper to fetch with automatic retry and longer timeout to survive slow mobile connections
 const fetchWithRetry = async (url: string, options: RequestInit = {}, maxRetries = 2, timeoutMs = 25000): Promise<Response> => {
@@ -582,7 +653,25 @@ const CatalogPreviewModal = ({
 
 export default function App() {
   // Navigation & View
-  const [activeTab, setActiveTab] = useState<'shop' | 'catalog'>('shop');
+  const [activeTab, setActiveTab] = useState<'shop' | 'order_khusus' | 'catalog'>('shop');
+
+  // Orderan Khusus State & Filters
+  const [orderKhususProducts, setOrderKhususProducts] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('gm_offline_order_khusus');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [searchTermOrderKhusus, setSearchTermOrderKhusus] = useState('');
+  const [selectedCategoryOrderKhusus, setSelectedCategoryOrderKhusus] = useState('');
+  const [selectedBrandOrderKhusus, setSelectedBrandOrderKhusus] = useState('');
+  const [currentPageOrderKhusus, setCurrentPageOrderKhusus] = useState(1);
+  const [availableCategoriesOrderKhusus, setAvailableCategoriesOrderKhusus] = useState<string[]>([]);
+  const [availableBrandsOrderKhusus, setAvailableBrandsOrderKhusus] = useState<string[]>([]);
   
   // Core Data Lists with instant cache initialization to ensure data is never missing
   const [products, setProducts] = useState<Product[]>(() => {
@@ -869,9 +958,9 @@ export default function App() {
     setErrorMsg(null);
 
     try {
-      // Fetch STOCK LIST, HARGA, master stock, and VARIASI in parallel with retry to survive poor networks
+      // Fetch STOCK LIST, HARGA, master stock, VARIASI, and ORDERAN KHUSUS in parallel with retry to survive poor networks
       const timestamp = new Date().getTime();
-      const [stockListRes, hargaRes, masterStockRes, variasiRes] = await Promise.all([
+      const [stockListRes, hargaRes, masterStockRes, variasiRes, orderKhususRes] = await Promise.all([
         fetchWithRetry(`${SHEET_STOCK_LIST_URL}&t=${timestamp}`),
         fetchWithRetry(`${SHEET_HARGA_URL}&t=${timestamp}`).catch((err) => {
           console.warn("Gagal memuat sheet HARGA, menggunakan harga dari stock list:", err);
@@ -884,16 +973,23 @@ export default function App() {
         fetchWithRetry(`${SHEET_VARIASI_URL}&t=${timestamp}`).catch((err) => {
           console.warn("Gagal memuat sheet VARIASI:", err);
           return null;
+        }),
+        fetchWithRetry(`${SHEET_ORDER_KHUSUS_URL}&t=${timestamp}`).catch(() => {
+          return fetchWithRetry(`https://docs.google.com/spreadsheets/d/1olil_je3rWoIn3SdZSO6kHIHGNxbUOtl7BphNTjxeRs/gviz/tq?tqx=out:csv&gid=0&t=${timestamp}`).catch((err) => {
+            console.warn("Gagal memuat ORDERAN KHUSUS:", err);
+            return null;
+          });
         })
       ]);
 
       if (!stockListRes || !stockListRes.ok) throw new Error('Gagal mengambil data STOCK LIST');
 
-      const [stockListText, hargaText, masterStockText, variasiText] = await Promise.all([
+      const [stockListText, hargaText, masterStockText, variasiText, orderKhususText] = await Promise.all([
         stockListRes.text(),
         hargaRes && hargaRes.ok ? hargaRes.text() : Promise.resolve(''),
         masterStockRes && masterStockRes.ok ? masterStockRes.text() : Promise.resolve(''),
-        variasiRes && variasiRes.ok ? variasiRes.text() : Promise.resolve('')
+        variasiRes && variasiRes.ok ? variasiRes.text() : Promise.resolve(''),
+        orderKhususRes && orderKhususRes.ok ? orderKhususRes.text() : Promise.resolve('')
       ]);
 
       const stockListParsed = parseCSV(stockListText);
@@ -1138,6 +1234,24 @@ export default function App() {
         });
       }
 
+      if (orderKhususText) {
+        const parsedOK = parseOrderKhususSheet(orderKhususText);
+        if (parsedOK.length > 0) {
+          setOrderKhususProducts(parsedOK);
+          const okCats = new Set<string>();
+          const okBrands = new Set<string>();
+          parsedOK.forEach(p => {
+            if (p.kategori && p.kategori !== '-') okCats.add(p.kategori);
+            if (p.merk && p.merk !== '-') okBrands.add(p.merk);
+          });
+          setAvailableCategoriesOrderKhusus(Array.from(okCats).sort());
+          setAvailableBrandsOrderKhusus(Array.from(okBrands).sort());
+          try {
+            localStorage.setItem('gm_offline_order_khusus', JSON.stringify(parsedOK));
+          } catch (e) {}
+        }
+      }
+
       setProducts(initialProducts);
 
       const cats = new Set<string>();
@@ -1221,6 +1335,24 @@ export default function App() {
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
+  // Filters (Orderan Khusus)
+  const filteredOrderKhususProducts = useMemo(() => {
+    const query = searchTermOrderKhusus.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+    return orderKhususProducts.filter(p => {
+      const matchSearch = query.length === 0 || query.every(w => p.nama.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w));
+      const matchCat = !selectedCategoryOrderKhusus || p.kategori === selectedCategoryOrderKhusus;
+      const matchBrand = !selectedBrandOrderKhusus || p.merk === selectedBrandOrderKhusus;
+      return matchSearch && matchCat && matchBrand;
+    });
+  }, [orderKhususProducts, searchTermOrderKhusus, selectedCategoryOrderKhusus, selectedBrandOrderKhusus]);
+
+  const paginatedOrderKhususProducts = useMemo(() => {
+    const start = (currentPageOrderKhusus - 1) * itemsPerPage;
+    return filteredOrderKhususProducts.slice(start, start + itemsPerPage);
+  }, [filteredOrderKhususProducts, currentPageOrderKhusus, itemsPerPage]);
+
+  const totalPagesOrderKhusus = Math.ceil(filteredOrderKhususProducts.length / itemsPerPage);
+
   // Filters (Katalog)
   const filteredCatalogProducts = useMemo(() => {
     const catalogOnly = products;
@@ -1280,7 +1412,7 @@ export default function App() {
   }, [cart]);
 
   const addToCart = (productId: string) => {
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId) || orderKhususProducts.find(p => p.id === productId);
     if (!product) return;
 
     const existing = cart.find(item => item.product.id === productId);
@@ -1346,7 +1478,7 @@ export default function App() {
     } else {
       setCatalogTiers(prev => ({ ...prev, [productId]: tier }));
       if (tier === 'custom' && catalogCustomPrices[productId] === undefined) {
-        const p = products.find(prod => prod.id === productId);
+        const p = products.find(prod => prod.id === productId) || orderKhususProducts.find(prod => prod.id === productId);
         setCatalogCustomPrices(prev => ({ ...prev, [productId]: p?.harga.eceran || 0 }));
       }
     }
@@ -2151,10 +2283,10 @@ export default function App() {
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
           
           {/* Tab Switcher */}
-          <div className="flex gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100 w-fit">
+          <div className="flex gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100 w-full sm:w-fit overflow-x-auto">
             <button
               onClick={() => setActiveTab('shop')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
                 activeTab === 'shop'
                   ? 'bg-primary-400 text-primary-900 shadow-sm'
                   : 'text-gray-500 hover:bg-gray-50'
@@ -2163,8 +2295,18 @@ export default function App() {
               <Package className="w-4 h-4" /> Belanja
             </button>
             <button
+              onClick={() => setActiveTab('order_khusus')}
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
+                activeTab === 'order_khusus'
+                  ? 'bg-primary-400 text-primary-900 shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4" /> Orderan Khusus
+            </button>
+            <button
               onClick={() => setActiveTab('catalog')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
                 activeTab === 'catalog'
                   ? 'bg-primary-400 text-primary-900 shadow-sm'
                   : 'text-gray-500 hover:bg-gray-50'
@@ -2622,6 +2764,458 @@ export default function App() {
                       <button
                         onClick={() => { if (currentPage < totalPages) { setCurrentPage(currentPage + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
                         disabled={currentPage === totalPages}
+                        className="p-2 rounded-lg text-gray-600 disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all active-tap cursor-pointer"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Tab View: Orderan Khusus */}
+          {activeTab === 'order_khusus' && (
+            <div className="flex flex-col gap-6 animate-fadeIn">
+              {/* Customer Info Card */}
+              <div className="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h2 className="text-lg font-bold mb-5 flex items-center gap-2 text-gray-800">
+                  <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
+                    <User className="w-5 h-5" />
+                  </div>
+                  Data Pelanggan
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1.5">
+                      Nama Customer <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative group">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                        <User className="w-4.5 h-4.5" />
+                      </span>
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
+                        placeholder="Nama Lengkap Pemesan"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1.5">
+                      No. WhatsApp <span className="text-gray-400 font-normal">(Opsional)</span>
+                    </label>
+                    <div className="relative group">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                        <Phone className="w-4.5 h-4.5" />
+                      </span>
+                      <input
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
+                        placeholder="Contoh: 08123456789"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Search & Product List (Orderan Khusus) */}
+              <div className="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-gray-100 flex-1">
+                <div className="flex flex-col mb-6 gap-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
+                          <ShoppingBag className="w-5 h-5" />
+                        </div>
+                        Orderan Khusus
+                      </h2>
+                      <span className="bg-primary-100 text-primary-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                        {filteredOrderKhususProducts.length} Produk
+                      </span>
+                      
+                      {/* View Switcher Controls */}
+                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => setShopViewMode('grid')}
+                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                            shopViewMode === 'grid'
+                              ? 'bg-white text-primary-600 shadow-xs'
+                              : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                          title="Tampilan Grid (Kotak)"
+                        >
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShopViewMode('list')}
+                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                            shopViewMode === 'list'
+                              ? 'bg-white text-primary-600 shadow-xs'
+                              : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                          title="Tampilan List (Baris)"
+                        >
+                          <ListIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Refresh / Sync Button */}
+                    <button
+                      onClick={() => fetchData(true)}
+                      className="active-tap flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
+
+                  {/* Search and Filters */}
+                  <div className="flex flex-col xl:flex-row gap-3">
+                    <div className="relative flex-1 flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                          <Search className="w-4 h-4" />
+                        </span>
+                        <input
+                          type="text"
+                          value={searchTermOrderKhusus}
+                          onChange={(e) => { setSearchTermOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-sm transition-all"
+                          placeholder="Cari produk orderan khusus / SKU..."
+                        />
+                      </div>
+                      <button
+                        onClick={() => setScannerOpen(true)}
+                        className="active-tap p-2.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-xl transition-colors flex-shrink-0 shadow-sm border border-primary-200 h-full aspect-square flex items-center justify-center cursor-pointer"
+                        title="Scan Barcode"
+                      >
+                        <ScanLine className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="flex gap-2 flex-col sm:flex-row w-full xl:w-auto">
+                      <select
+                        value={globalPriceTier}
+                        onChange={(e) => setGlobalPriceTier(e.target.value as any)}
+                        className="w-full sm:w-auto text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm flex-shrink-0"
+                      >
+                        <option value="eceran">Semua: Eceran</option>
+                        <option value="grosir">Semua: Grosir</option>
+                        <option value="partai">Semua: Partai</option>
+                      </select>
+
+                      {availableCategoriesOrderKhusus.length > 0 && (
+                        <div className="relative w-full sm:w-44 flex-shrink-0">
+                          <select
+                            value={selectedCategoryOrderKhusus}
+                            onChange={(e) => { setSelectedCategoryOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
+                            className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm"
+                          >
+                            <option value="">Semua Kategori</option>
+                            {availableCategoriesOrderKhusus.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {availableBrandsOrderKhusus.length > 0 && (
+                        <div className="relative w-full sm:w-44 flex-shrink-0">
+                          <select
+                            value={selectedBrandOrderKhusus}
+                            onChange={(e) => { setSelectedBrandOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
+                            className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm"
+                          >
+                            <option value="">Semua Merk</option>
+                            {availableBrandsOrderKhusus.map(b => (
+                              <option key={b} value={b}>{b}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Products Grid or List */}
+                <div className={
+                  shopViewMode === 'list'
+                    ? "flex flex-col gap-2.5"
+                    : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
+                }>
+                  {paginatedOrderKhususProducts.length === 0 ? (
+                    <div className="col-span-full py-16 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 my-4">
+                      <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-30 text-primary-600" />
+                      <p className="font-semibold text-gray-600 text-base mb-1">
+                        {orderKhususProducts.length === 0 ? "Data Orderan Khusus Belum Dimuat" : "Produk Tidak Ditemukan"}
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                        {orderKhususProducts.length === 0 ? "Sistem sedang mengambil data dari Google Sheet atau coba klik tombol Refresh." : "Tidak ada produk orderan khusus yang sesuai dengan kata kunci pencarian Anda."}
+                      </p>
+                    </div>
+                  ) : (
+                    paginatedOrderKhususProducts.map(product => {
+                      const cartItem = cart.find(i => i.product.id === product.id);
+                      const isInCart = !!cartItem;
+                      const activeTier = cartItem?.priceTier || catalogTiers[product.id] || globalPriceTier;
+                      const activeCustomPrice = cartItem?.customPrice !== undefined ? cartItem.customPrice : catalogCustomPrices[product.id];
+
+                      if (shopViewMode === 'list') {
+                        return (
+                          <div
+                            key={product.id}
+                            className="border border-slate-100 hover:border-primary-200 bg-white p-2.5 sm:p-3 rounded-xl flex items-center justify-between gap-2.5 sm:gap-4 hover:shadow-xs transition-all duration-150"
+                          >
+                            <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
+                              <div
+                                onClick={() => setSelectedProductDetail(product)}
+                                className="relative w-12 h-12 sm:w-14 sm:h-14 bg-primary-50 rounded-lg shrink-0 flex items-center justify-center cursor-pointer hover:bg-primary-100 transition-colors border border-primary-100"
+                                title="Klik untuk rincian produk"
+                              >
+                                <ShoppingBag className="w-6 h-6 text-primary-600" />
+                              </div>
+
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                  <span className="bg-primary-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded shadow-2xs">
+                                    {product.sku}
+                                  </span>
+                                  {product.merk && product.merk !== '-' && (
+                                    <span className="bg-slate-100 text-slate-700 text-[9px] font-semibold px-1.5 py-0.5 rounded border border-slate-200">
+                                      {product.merk}
+                                    </span>
+                                  )}
+                                  {product.kategori && product.kategori !== '-' && (
+                                    <span className="bg-amber-50 text-amber-700 text-[9px] font-semibold px-1.5 py-0.5 rounded border border-amber-200">
+                                      {product.kategori}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3
+                                  onClick={() => setSelectedProductDetail(product)}
+                                  className="font-bold text-slate-800 text-xs sm:text-sm leading-tight cursor-pointer hover:text-primary-600 truncate transition-colors"
+                                  title={product.nama}
+                                >
+                                  {product.nama}
+                                </h3>
+                                <div className="flex items-center gap-2 mt-1 text-[9px] sm:text-[10px] font-medium text-slate-500">
+                                  <span>Toko: <strong className="text-slate-700">{product.stok.toko}</strong></span>
+                                  <span>•</span>
+                                  <span>Gudang: <strong className="text-slate-700">{product.stok.gudang}</strong></span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="w-28 sm:w-44 flex flex-col justify-center shrink-0">
+                              <select
+                                value={activeTier}
+                                onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
+                                className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-1 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors pr-4"
+                              >
+                                <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
+                                <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
+                                <option value="partai">Prt: {formatRupiah(product.harga.partai)} /{product.unit}</option>
+                                <option value="custom">Custom</option>
+                              </select>
+                              
+                              {activeTier === 'custom' && (
+                                <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1">
+                                  <span className="bg-gray-150 text-gray-400 px-1 py-0.5 text-[8px] font-bold border-r border-gray-200">Rp</span>
+                                  <input
+                                    type="number"
+                                    value={activeCustomPrice || ''}
+                                    onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
+                                    className="w-full px-1 py-0.5 text-[9px] font-bold text-gray-800 outline-none"
+                                    placeholder="0"
+                                  />
+                                </div>
+                              )}
+
+                              <div className="transition-transform duration-150">
+                                {isInCart ? (
+                                  <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5">
+                                    <button
+                                      onClick={() => updateCartQty(product.id, -1)}
+                                      className={`active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                        cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
+                                      }`}
+                                    >
+                                      {cartItem.qty === 1 ? <Trash2 className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+                                    </button>
+                                    <div className="flex flex-col items-center justify-center">
+                                      <input
+                                        type="number"
+                                        value={cartItem.qty}
+                                        onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
+                                        className="text-[9px] sm:text-xs font-black w-6 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
+                                        min="0"
+                                      />
+                                    </div>
+                                    <button
+                                      onClick={() => updateCartQty(product.id, 1)}
+                                      className="active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
+                                    >
+                                      <Plus className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => addToCart(product.id)}
+                                    className="active-tap w-full py-1 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[9px] sm:text-xs cursor-pointer"
+                                  >
+                                    <PlusCircle className="w-3 h-3" />
+                                    <span>Tambah</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={product.id} className="border border-gray-100 bg-white p-2 sm:p-3 pb-3 sm:pb-4 rounded-xl flex flex-col hover:shadow-md transition-all duration-300 group relative">
+                          <div 
+                            className="relative w-full aspect-square bg-primary-50 flex items-center justify-center overflow-hidden rounded-lg mb-2 cursor-pointer border border-primary-100"
+                            onClick={() => setSelectedProductDetail(product)}
+                            title="Klik untuk rincian produk"
+                          >
+                            <ShoppingBag className="w-10 h-10 text-primary-600 opacity-80" />
+                            <span className="absolute bottom-1 left-1 bg-primary-600/90 text-white text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded shadow-xs">
+                              {product.sku}
+                            </span>
+                            {product.merk && product.merk !== '-' && (
+                              <span className="absolute top-1 left-1 bg-slate-800/80 text-white text-[8px] font-medium px-1 py-0.5 rounded shadow-xs">
+                                {product.merk}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex-1 flex flex-col justify-start">
+                            <h3
+                              onClick={() => setSelectedProductDetail(product)}
+                              className="font-bold text-slate-800 text-[10px] sm:text-xs leading-tight mb-1 cursor-pointer hover:text-primary-600 line-clamp-2 min-h-[1.8rem] sm:min-h-[2.2rem] transition-colors"
+                              title={product.nama}
+                            >
+                              {product.nama}
+                            </h3>
+                            
+                            <div className="flex gap-1 mb-2 text-[8px] sm:text-[9px] font-semibold text-slate-500 flex-wrap">
+                              <span className="bg-slate-50 px-1 py-0.5 rounded border border-slate-150">T: {product.stok.toko}</span>
+                              <span className="bg-slate-50 px-1 py-0.5 rounded border border-slate-150">G: {product.stok.gudang}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="w-full mt-auto flex flex-col justify-end">
+                            <select
+                              value={activeTier}
+                              onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
+                              className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors pr-4"
+                            >
+                              <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
+                              <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
+                              <option value="partai">Prt: {formatRupiah(product.harga.partai)} /{product.unit}</option>
+                              <option value="custom">Custom</option>
+                            </select>
+                            
+                            {activeTier === 'custom' && (
+                              <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1.5">
+                                <span className="bg-gray-150 text-gray-400 px-1.5 py-1 text-[8px] font-bold border-r border-gray-200">Rp</span>
+                                <input
+                                  type="number"
+                                  value={activeCustomPrice || ''}
+                                  onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
+                                  className="w-full px-1.5 py-1 text-[10px] font-bold text-gray-800 outline-none"
+                                  placeholder="0"
+                                />
+                              </div>
+                            )}
+
+                            <div className="transition-transform duration-150">
+                              {isInCart ? (
+                                <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5 mt-0.5">
+                                  <button
+                                    onClick={() => updateCartQty(product.id, -1)}
+                                    className={`active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                      cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
+                                    }`}
+                                  >
+                                    {cartItem.qty === 1 ? <Trash2 className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                                  </button>
+                                  <div className="flex flex-col items-center justify-center">
+                                    <span className="text-[7px] font-bold text-primary-600 uppercase tracking-wider mb-[-4px]">Qty</span>
+                                    <input
+                                      type="number"
+                                      value={cartItem.qty}
+                                      onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
+                                      className="text-[10px] sm:text-xs font-black w-7 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
+                                      min="0"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => updateCartQty(product.id, 1)}
+                                    className="active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => addToCart(product.id)}
+                                  className="active-tap w-full py-1.5 sm:py-2 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[10px] sm:text-xs mt-0.5 cursor-pointer"
+                                >
+                                  <PlusCircle className="w-3.5 h-3.5" />
+                                  <span>Tambah</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Pagination Controls */}
+                {filteredOrderKhususProducts.length > 0 && (
+                  <div className="mt-8 border-t border-gray-100 pt-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-500">Tampilkan:</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPageOrderKhusus(1); }}
+                        className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-white font-medium shadow-sm"
+                      >
+                        <option value="12">12 / Hal</option>
+                        <option value="24">24 / Hal</option>
+                        <option value="60">60 / Hal</option>
+                        <option value="120">120 / Hal</option>
+                      </select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                      <button
+                        onClick={() => { if (currentPageOrderKhusus > 1) { setCurrentPageOrderKhusus(currentPageOrderKhusus - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
+                        disabled={currentPageOrderKhusus === 1}
+                        className="p-2 rounded-lg text-gray-600 disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all active-tap cursor-pointer"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <span className="text-sm font-bold text-gray-700 px-3">
+                        {currentPageOrderKhusus} / {totalPagesOrderKhusus}
+                      </span>
+                      <button
+                        onClick={() => { if (currentPageOrderKhusus < totalPagesOrderKhusus) { setCurrentPageOrderKhusus(currentPageOrderKhusus + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
+                        disabled={currentPageOrderKhusus === totalPagesOrderKhusus}
                         className="p-2 rounded-lg text-gray-600 disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all active-tap cursor-pointer"
                       >
                         <ChevronRight className="w-5 h-5" />
