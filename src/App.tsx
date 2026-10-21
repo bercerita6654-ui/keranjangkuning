@@ -79,6 +79,12 @@ const parseOrderKhususSheet = (rawText: string): Product[] => {
   const parsed = parseCSV(rawText);
   if (parsed.length <= 1) return [];
 
+  const extractDriveId = (val: string | null | undefined): string | null => {
+    if (!val || val === '-' || val.trim() === '') return null;
+    const match = val.match(/[-\w]{25,}/);
+    return match ? match[0] : (val.trim().length >= 10 ? val.trim() : null);
+  };
+
   const headers = parsed[0].map(h => h.toLowerCase().trim());
   const colIdx = {
     sku: headers.findIndex(h => h === 'sku' || h === 'code' || h.includes('kode')),
@@ -93,6 +99,9 @@ const parseOrderKhususSheet = (rawText: string): Product[] => {
     stokGudang: headers.findIndex(h => h.includes('gudang')),
     stokToko: headers.findIndex(h => h.includes('toko')),
     totalStok: headers.findIndex(h => h.includes('total stok') || h.includes('stok') || h.includes('qty')),
+    fotoProduk: headers.findIndex(h => h.includes('foto') || h.includes('picture') || h.includes('image') || h.includes('gambar')),
+    gambarStory: headers.findIndex(h => h.includes('story') || h.includes('katalog')),
+    lastUpdateFoto: headers.findIndex(h => h.includes('last update') || h.includes('terakhir update')),
   };
 
   return parsed.slice(1).map((row): Product | null => {
@@ -118,16 +127,23 @@ const parseOrderKhususSheet = (rawText: string): Product[] => {
     const finalToko = tokoVal || totalStokVal || 0;
     const finalGudang = gudangVal || 0;
 
+    const fotoVal = colIdx.fotoProduk !== -1 && row[colIdx.fotoProduk] ? row[colIdx.fotoProduk].trim() : '';
+    const storyVal = colIdx.gambarStory !== -1 && row[colIdx.gambarStory] ? row[colIdx.gambarStory].trim() : '';
+    const lastUpdateFotoVal = colIdx.lastUpdateFoto !== -1 && row[colIdx.lastUpdateFoto] ? row[colIdx.lastUpdateFoto].trim() : '-';
+
+    const fotoId = extractDriveId(fotoVal);
+    const storyId = extractDriveId(storyVal);
+
     return {
       id: skuRaw,
       nama: namaVal,
       sku: skuRaw,
       kategori: kategoriVal,
       merk: merkVal,
-      gambarStoryId: null,
+      gambarStoryId: storyId || fotoId,
       lastUpdateStory: '-',
-      fotoProdukId: null,
-      lastUpdateFoto: '-',
+      fotoProdukId: fotoId,
+      lastUpdateFoto: lastUpdateFotoVal,
       unit: unitVal,
       stok: {
         gudang: isNaN(finalGudang) ? 0 : finalGudang,
@@ -2978,10 +2994,26 @@ export default function App() {
                             <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
                               <div
                                 onClick={() => setSelectedProductDetail(product)}
-                                className="relative w-12 h-12 sm:w-14 sm:h-14 bg-primary-50 rounded-lg shrink-0 flex items-center justify-center cursor-pointer hover:bg-primary-100 transition-colors border border-primary-100"
+                                className="relative w-12 h-12 sm:w-14 sm:h-14 bg-primary-50 rounded-lg shrink-0 flex items-center justify-center cursor-pointer hover:bg-primary-100 transition-colors border border-primary-100 overflow-hidden"
                                 title="Klik untuk rincian produk"
                               >
-                                <ShoppingBag className="w-6 h-6 text-primary-600" />
+                                {(() => {
+                                  const imgId = product.fotoProdukId || product.gambarStoryId;
+                                  if (imgId && imgId !== '-' && imgId !== '') {
+                                    return (
+                                      <img
+                                        src={getGoogleDriveThumbnail(imgId, 160)}
+                                        alt={product.nama}
+                                        className="w-full h-full object-cover rounded-lg"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                        }}
+                                      />
+                                    );
+                                  }
+                                  return <ShoppingBag className="w-6 h-6 text-primary-600" />;
+                                })()}
                               </div>
 
                               <div className="flex flex-col min-w-0 flex-1">
@@ -3085,16 +3117,32 @@ export default function App() {
                       return (
                         <div key={product.id} className="border border-gray-100 bg-white p-2 sm:p-3 pb-3 sm:pb-4 rounded-xl flex flex-col hover:shadow-md transition-all duration-300 group relative">
                           <div 
-                            className="relative w-full aspect-square bg-primary-50 flex items-center justify-center overflow-hidden rounded-lg mb-2 cursor-pointer border border-primary-100"
+                            className="relative w-full aspect-square bg-primary-50 flex items-center justify-center overflow-hidden rounded-lg mb-2 cursor-pointer border border-primary-100 group"
                             onClick={() => setSelectedProductDetail(product)}
                             title="Klik untuk rincian produk"
                           >
-                            <ShoppingBag className="w-10 h-10 text-primary-600 opacity-80" />
-                            <span className="absolute bottom-1 left-1 bg-primary-600/90 text-white text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded shadow-xs">
+                            {(() => {
+                              const imgId = product.fotoProdukId || product.gambarStoryId;
+                              if (imgId && imgId !== '-' && imgId !== '') {
+                                return (
+                                  <img
+                                    src={getGoogleDriveThumbnail(imgId, 320)}
+                                    alt={product.nama}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                );
+                              }
+                              return <ShoppingBag className="w-10 h-10 text-primary-600 opacity-80" />;
+                            })()}
+                            <span className="absolute bottom-1 left-1 bg-primary-600/90 text-white text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded shadow-xs z-10">
                               {product.sku}
                             </span>
                             {product.merk && product.merk !== '-' && (
-                              <span className="absolute top-1 left-1 bg-slate-800/80 text-white text-[8px] font-medium px-1 py-0.5 rounded shadow-xs">
+                              <span className="absolute top-1 left-1 bg-slate-800/80 text-white text-[8px] font-medium px-1 py-0.5 rounded shadow-xs z-10">
                                 {product.merk}
                               </span>
                             )}
