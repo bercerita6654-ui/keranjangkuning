@@ -27,6 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   BookOpen,
   FileText,
   Printer,
@@ -815,6 +816,7 @@ export default function App() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerNote, setCustomerNote] = useState('');
+  const [isCustomerDataExpanded, setIsCustomerDataExpanded] = useState(true);
 
   // PDF Export States
   const [pdfGrid, setPdfGrid] = useState(() => {
@@ -2296,209 +2298,380 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 relative">
         
         {/* Left Column: Products & Catalog */}
-        <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-5">
           
-          {/* Tab Switcher */}
-          <div className="flex gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100 w-full sm:w-fit overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('shop')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
-                activeTab === 'shop'
-                  ? 'bg-primary-400 text-primary-900 shadow-sm'
-                  : 'text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              <Package className="w-4 h-4" /> Belanja
-            </button>
-            <button
-              onClick={() => setActiveTab('order_khusus')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
-                activeTab === 'order_khusus'
-                  ? 'bg-primary-400 text-primary-900 shadow-sm'
-                  : 'text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4" /> Orderan Khusus
-            </button>
-            <button
-              onClick={() => setActiveTab('catalog')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
-                activeTab === 'catalog'
-                  ? 'bg-primary-400 text-primary-900 shadow-sm'
-                  : 'text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" /> Katalog Gambar
-            </button>
+          {/* FROZEN STICKY TOP CONTROLS (Data Pelanggan & Menu Daftar Produk) */}
+          <div className="sticky top-16 sm:top-20 z-30 bg-slate-50/95 backdrop-blur-md pt-0.5 pb-2.5 -mx-1 sm:-mx-2 px-1 sm:px-2 flex flex-col gap-2.5 border-b border-gray-200/60 shadow-xs">
+            
+            {/* Row 1: Tab Switcher Menu */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex gap-1.5 sm:gap-2 bg-white p-1.5 rounded-xl shadow-2xs border border-gray-200 w-full sm:w-fit overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab('shop')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
+                    activeTab === 'shop'
+                      ? 'bg-primary-400 text-primary-900 shadow-xs'
+                      : 'text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Belanja
+                </button>
+                <button
+                  onClick={() => setActiveTab('order_khusus')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
+                    activeTab === 'order_khusus'
+                      ? 'bg-primary-400 text-primary-900 shadow-xs'
+                      : 'text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Orderan Khusus
+                </button>
+                <button
+                  onClick={() => setActiveTab('catalog')}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
+                    activeTab === 'catalog'
+                      ? 'bg-primary-400 text-primary-900 shadow-xs'
+                      : 'text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Katalog Gambar
+                </button>
+              </div>
+
+              {/* Status Freeze Active Indicator */}
+              <div className="hidden md:flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-white/90 border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Freeze Header Aktif</span>
+              </div>
+            </div>
+
+            {/* Row 2: Informasi Data Pelanggan Card (Active in Shop & Orderan Khusus) */}
+            {(activeTab === 'shop' || activeTab === 'order_khusus') && (
+              <div className="bg-white p-2.5 sm:p-3.5 rounded-xl shadow-xs border border-gray-200 transition-all">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-primary-100 text-primary-600 p-1 rounded-md">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span className="font-extrabold text-xs sm:text-sm text-gray-800">Data Pelanggan</span>
+                    {customerName.trim() ? (
+                      <span className="text-[10px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3 stroke-[3]" /> {customerName}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] sm:text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                        Wajib Diisi
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomerDataExpanded(!isCustomerDataExpanded)}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                    title={isCustomerDataExpanded ? "Perkecil Informasi Data Pelanggan" : "Tampilkan Kolom Data Pelanggan"}
+                  >
+                    <span>{isCustomerDataExpanded ? "Ringkas" : "Ubah"}</span>
+                    {isCustomerDataExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                {isCustomerDataExpanded ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2.5 pt-2.5 border-t border-gray-100 animate-fadeIn">
+                    <div>
+                      <label className="block text-[10px] sm:text-[11px] font-bold text-gray-600 mb-1">
+                        Nama Customer <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative group">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
+                          <User className="w-3.5 h-3.5" />
+                        </span>
+                        <input
+                          type="text"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          className="w-full pl-8.5 pr-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-xs sm:text-sm font-medium bg-gray-50/40 focus:bg-white"
+                          placeholder="Nama Lengkap Pemesan"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] sm:text-[11px] font-bold text-gray-600 mb-1">
+                        No. WhatsApp <span className="text-gray-400 font-normal">(Opsional)</span>
+                      </label>
+                      <div className="relative group">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
+                          <Phone className="w-3.5 h-3.5" />
+                        </span>
+                        <input
+                          type="tel"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          className="w-full pl-8.5 pr-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-xs sm:text-sm font-medium bg-gray-50/40 focus:bg-white"
+                          placeholder="Contoh: 08123456789"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  customerPhone && (
+                    <div className="text-[11px] text-gray-500 mt-1 pl-6">
+                      WA: <strong className="text-gray-700">{customerPhone}</strong>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* Row 3 (Belanja): Menu Daftar Produk (Controls, Search, Filter) */}
+            {activeTab === 'shop' && (
+              <div className="bg-white p-2.5 sm:p-3.5 rounded-xl shadow-xs border border-gray-200 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                      <div className="bg-primary-100 text-primary-600 p-1 rounded-md">
+                        <Package className="w-3.5 h-3.5" />
+                      </div>
+                      Daftar Produk
+                    </h2>
+                    <span className="bg-primary-100 text-primary-800 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full">
+                      {filteredProducts.length} Produk
+                    </span>
+                    
+                    {/* View Switcher Controls */}
+                    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setShopViewMode('grid')}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${
+                          shopViewMode === 'grid'
+                            ? 'bg-white text-primary-600 shadow-xs'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Tampilan Grid (Kotak)"
+                      >
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShopViewMode('list')}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${
+                          shopViewMode === 'list'
+                            ? 'bg-white text-primary-600 shadow-xs'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Tampilan List (Baris)"
+                      >
+                        <ListIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => fetchData(true)}
+                    className="flex items-center gap-1 text-[11px] font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-lg transition-colors border border-primary-200 shadow-2xs active-tap cursor-pointer"
+                    id="btn-refresh-data"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'spin-slow' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+                
+                <div className="flex flex-col xl:flex-row gap-2 items-stretch xl:items-center">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="relative flex-1">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
+                        <Search className="w-3.5 h-3.5" />
+                      </span>
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        className="w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-xs transition-all font-medium"
+                        placeholder="Cari nama produk / SKU acak..."
+                      />
+                    </div>
+                    <button
+                      onClick={() => setScannerOpen(true)}
+                      className="active-tap p-1.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-lg transition-colors flex-shrink-0 shadow-2xs border border-primary-200 h-8 aspect-square flex items-center justify-center cursor-pointer"
+                      title="Scan Barcode"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex gap-1.5 flex-col sm:flex-row w-full xl:w-auto">
+                    <select
+                      value={globalPriceTier}
+                      onChange={(e) => setGlobalPriceTier(e.target.value as any)}
+                      className="w-full sm:w-auto text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs flex-shrink-0"
+                    >
+                      <option value="eceran">Semua: Eceran</option>
+                      <option value="grosir">Semua: Grosir</option>
+                      <option value="partai">Semua: Partai</option>
+                    </select>
+
+                    {availableCategories.length > 0 && (
+                      <div className="relative w-full sm:w-36 flex-shrink-0">
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
+                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
+                        >
+                          <option value="">Semua Kategori</option>
+                          {availableCategories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {availableBrands.length > 0 && (
+                      <div className="relative w-full sm:w-36 flex-shrink-0">
+                        <select
+                          value={selectedBrand}
+                          onChange={(e) => { setSelectedBrand(e.target.value); setCurrentPage(1); }}
+                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
+                        >
+                          <option value="">Semua Merk</option>
+                          {availableBrands.map(b => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Row 3 (Orderan Khusus): Menu Orderan Khusus (Controls, Search, Filter) */}
+            {activeTab === 'order_khusus' && (
+              <div className="bg-white p-2.5 sm:p-3.5 rounded-xl shadow-xs border border-gray-200 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                      <div className="bg-primary-100 text-primary-600 p-1 rounded-md">
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                      </div>
+                      Orderan Khusus
+                    </h2>
+                    <span className="bg-primary-100 text-primary-800 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full">
+                      {filteredOrderKhususProducts.length} Produk
+                    </span>
+                    
+                    {/* View Switcher Controls */}
+                    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setShopViewMode('grid')}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${
+                          shopViewMode === 'grid'
+                            ? 'bg-white text-primary-600 shadow-xs'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Tampilan Grid (Kotak)"
+                      >
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShopViewMode('list')}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${
+                          shopViewMode === 'list'
+                            ? 'bg-white text-primary-600 shadow-xs'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Tampilan List (Baris)"
+                      >
+                        <ListIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => fetchData(true)}
+                    className="flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+
+                <div className="flex flex-col xl:flex-row gap-2 items-stretch xl:items-center">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="relative flex-1">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
+                        <Search className="w-3.5 h-3.5" />
+                      </span>
+                      <input
+                        type="text"
+                        value={searchTermOrderKhusus}
+                        onChange={(e) => { setSearchTermOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
+                        className="w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-xs transition-all font-medium"
+                        placeholder="Cari produk orderan khusus / SKU..."
+                      />
+                    </div>
+                    <button
+                      onClick={() => setScannerOpen(true)}
+                      className="active-tap p-1.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-lg transition-colors flex-shrink-0 shadow-2xs border border-primary-200 h-8 aspect-square flex items-center justify-center cursor-pointer"
+                      title="Scan Barcode"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex gap-1.5 flex-col sm:flex-row w-full xl:w-auto">
+                    <select
+                      value={globalPriceTier}
+                      onChange={(e) => setGlobalPriceTier(e.target.value as any)}
+                      className="w-full sm:w-auto text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs flex-shrink-0"
+                    >
+                      <option value="eceran">Semua: Eceran</option>
+                      <option value="grosir">Semua: Grosir</option>
+                      <option value="partai">Semua: Partai</option>
+                    </select>
+
+                    {availableCategoriesOrderKhusus.length > 0 && (
+                      <div className="relative w-full sm:w-36 flex-shrink-0">
+                        <select
+                          value={selectedCategoryOrderKhusus}
+                          onChange={(e) => { setSelectedCategoryOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
+                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
+                        >
+                          <option value="">Semua Kategori</option>
+                          {availableCategoriesOrderKhusus.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {availableBrandsOrderKhusus.length > 0 && (
+                      <div className="relative w-full sm:w-36 flex-shrink-0">
+                        <select
+                          value={selectedBrandOrderKhusus}
+                          onChange={(e) => { setSelectedBrandOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
+                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
+                        >
+                          <option value="">Semua Merk</option>
+                          {availableBrandsOrderKhusus.map(b => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tab View: Belanja (Shop) */}
           {activeTab === 'shop' && (
-            <div className="flex flex-col gap-6 animate-fadeIn">
-              {/* Customer Info Card */}
-              <div className="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h2 className="text-lg font-bold mb-5 flex items-center gap-2 text-gray-800">
-                  <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
-                    <User className="w-5 h-5" />
-                  </div>
-                  Data Pelanggan
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                      Nama Customer <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative group">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
-                        <User className="w-4.5 h-4.5" />
-                      </span>
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
-                        placeholder="Nama Lengkap Pemesan"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                      No. WhatsApp <span className="text-gray-400 font-normal">(Opsional)</span>
-                    </label>
-                    <div className="relative group">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
-                        <Phone className="w-4.5 h-4.5" />
-                      </span>
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
-                        placeholder="Contoh: 08123456789"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Search & Product List */}
-              <div className="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-gray-100 flex-1">
-                <div className="flex flex-col mb-6 gap-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
-                          <Package className="w-5 h-5" />
-                        </div>
-                        Daftar Produk
-                      </h2>
-                      
-                      {/* View Switcher Controls */}
-                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                        <button
-                          type="button"
-                          onClick={() => setShopViewMode('grid')}
-                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                            shopViewMode === 'grid'
-                              ? 'bg-white text-primary-600 shadow-xs'
-                              : 'text-slate-400 hover:text-slate-600'
-                          }`}
-                          title="Tampilan Grid (Kotak)"
-                        >
-                          <LayoutGrid className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShopViewMode('list')}
-                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                            shopViewMode === 'list'
-                              ? 'bg-white text-primary-600 shadow-xs'
-                              : 'text-slate-400 hover:text-slate-600'
-                          }`}
-                          title="Tampilan List (Baris)"
-                        >
-                          <ListIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={() => fetchData(true)}
-                      className="flex items-center gap-1.5 text-xs font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1.5 rounded-lg transition-colors border border-primary-200 shadow-sm active-tap cursor-pointer"
-                      id="btn-refresh-data"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'spin-slow' : ''}`} />
-                      <span>Refresh Data</span>
-                    </button>
-                  </div>
-                  
-                  <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="relative flex-1">
-                        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-                          <Search className="w-4 h-4" />
-                        </span>
-                        <input
-                          type="text"
-                          value={searchTerm}
-                          onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-sm transition-all"
-                          placeholder="Cari nama produk / SKU acak..."
-                        />
-                      </div>
-                      <button
-                        onClick={() => setScannerOpen(true)}
-                        className="active-tap p-2.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-xl transition-colors flex-shrink-0 shadow-sm border border-primary-200 h-full aspect-square flex items-center justify-center cursor-pointer"
-                        title="Scan Barcode"
-                      >
-                        <ScanLine className="w-5 h-5" />
-                      </button>
-                    </div>
-                    
-                    <div className="flex gap-2 flex-col sm:flex-row w-full xl:w-auto">
-                      <select
-                        value={globalPriceTier}
-                        onChange={(e) => setGlobalPriceTier(e.target.value as any)}
-                        className="w-full sm:w-auto text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm flex-shrink-0"
-                      >
-                        <option value="eceran">Semua: Eceran</option>
-                        <option value="grosir">Semua: Grosir</option>
-                        <option value="partai">Semua: Partai</option>
-                      </select>
-
-                      {availableCategories.length > 0 && (
-                        <div className="relative w-full sm:w-44 flex-shrink-0">
-                          <select
-                            value={selectedCategory}
-                            onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-                            className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm"
-                          >
-                            <option value="">Semua Kategori</option>
-                            {availableCategories.map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {availableBrands.length > 0 && (
-                        <div className="relative w-full sm:w-44 flex-shrink-0">
-                          <select
-                            value={selectedBrand}
-                            onChange={(e) => { setSelectedBrand(e.target.value); setCurrentPage(1); }}
-                            className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm"
-                          >
-                            <option value="">Semua Merk</option>
-                            {availableBrands.map(b => (
-                              <option key={b} value={b}>{b}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
+            <div className="flex flex-col gap-4 animate-fadeIn">
+              {/* Product List Card */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex-1">
                 {/* Product Grid / List Layout */}
                 <div className={shopViewMode === 'grid' 
                   ? "grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4"
@@ -2793,174 +2966,9 @@ export default function App() {
 
           {/* Tab View: Orderan Khusus */}
           {activeTab === 'order_khusus' && (
-            <div className="flex flex-col gap-6 animate-fadeIn">
-              {/* Customer Info Card */}
-              <div className="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h2 className="text-lg font-bold mb-5 flex items-center gap-2 text-gray-800">
-                  <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
-                    <User className="w-5 h-5" />
-                  </div>
-                  Data Pelanggan
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                      Nama Customer <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative group">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
-                        <User className="w-4.5 h-4.5" />
-                      </span>
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
-                        placeholder="Nama Lengkap Pemesan"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                      No. WhatsApp <span className="text-gray-400 font-normal">(Opsional)</span>
-                    </label>
-                    <div className="relative group">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors">
-                        <Phone className="w-4.5 h-4.5" />
-                      </span>
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm font-medium"
-                        placeholder="Contoh: 08123456789"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Search & Product List (Orderan Khusus) */}
-              <div className="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-gray-100 flex-1">
-                <div className="flex flex-col mb-6 gap-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <div className="bg-primary-100 text-primary-600 p-1.5 rounded-lg">
-                          <ShoppingBag className="w-5 h-5" />
-                        </div>
-                        Orderan Khusus
-                      </h2>
-                      <span className="bg-primary-100 text-primary-800 text-xs font-bold px-2.5 py-1 rounded-full">
-                        {filteredOrderKhususProducts.length} Produk
-                      </span>
-                      
-                      {/* View Switcher Controls */}
-                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                        <button
-                          type="button"
-                          onClick={() => setShopViewMode('grid')}
-                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                            shopViewMode === 'grid'
-                              ? 'bg-white text-primary-600 shadow-xs'
-                              : 'text-slate-400 hover:text-slate-600'
-                          }`}
-                          title="Tampilan Grid (Kotak)"
-                        >
-                          <LayoutGrid className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShopViewMode('list')}
-                          className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                            shopViewMode === 'list'
-                              ? 'bg-white text-primary-600 shadow-xs'
-                              : 'text-slate-400 hover:text-slate-600'
-                          }`}
-                          title="Tampilan List (Baris)"
-                        >
-                          <ListIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Refresh / Sync Button */}
-                    <button
-                      onClick={() => fetchData(true)}
-                      className="active-tap flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      <span>Refresh</span>
-                    </button>
-                  </div>
-
-                  {/* Search and Filters */}
-                  <div className="flex flex-col xl:flex-row gap-3">
-                    <div className="relative flex-1 flex gap-2">
-                      <div className="relative flex-1">
-                        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-                          <Search className="w-4 h-4" />
-                        </span>
-                        <input
-                          type="text"
-                          value={searchTermOrderKhusus}
-                          onChange={(e) => { setSearchTermOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-sm transition-all"
-                          placeholder="Cari produk orderan khusus / SKU..."
-                        />
-                      </div>
-                      <button
-                        onClick={() => setScannerOpen(true)}
-                        className="active-tap p-2.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-xl transition-colors flex-shrink-0 shadow-sm border border-primary-200 h-full aspect-square flex items-center justify-center cursor-pointer"
-                        title="Scan Barcode"
-                      >
-                        <ScanLine className="w-5 h-5" />
-                      </button>
-                    </div>
-                    
-                    <div className="flex gap-2 flex-col sm:flex-row w-full xl:w-auto">
-                      <select
-                        value={globalPriceTier}
-                        onChange={(e) => setGlobalPriceTier(e.target.value as any)}
-                        className="w-full sm:w-auto text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm flex-shrink-0"
-                      >
-                        <option value="eceran">Semua: Eceran</option>
-                        <option value="grosir">Semua: Grosir</option>
-                        <option value="partai">Semua: Partai</option>
-                      </select>
-
-                      {availableCategoriesOrderKhusus.length > 0 && (
-                        <div className="relative w-full sm:w-44 flex-shrink-0">
-                          <select
-                            value={selectedCategoryOrderKhusus}
-                            onChange={(e) => { setSelectedCategoryOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
-                            className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm"
-                          >
-                            <option value="">Semua Kategori</option>
-                            {availableCategoriesOrderKhusus.map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {availableBrandsOrderKhusus.length > 0 && (
-                        <div className="relative w-full sm:w-44 flex-shrink-0">
-                          <select
-                            value={selectedBrandOrderKhusus}
-                            onChange={(e) => { setSelectedBrandOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
-                            className="w-full text-sm border border-gray-200 rounded-xl py-2.5 px-3 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-sm"
-                          >
-                            <option value="">Semua Merk</option>
-                            {availableBrandsOrderKhusus.map(b => (
-                              <option key={b} value={b}>{b}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+            <div className="flex flex-col gap-4 animate-fadeIn">
+              {/* Product List Card */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex-1">
 
                 {/* Products Grid or List */}
                 <div className={
