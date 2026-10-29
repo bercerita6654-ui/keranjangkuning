@@ -2225,9 +2225,9 @@ export default function App() {
 
       {/* Header */}
       <header className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-[90] border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <GlobalMartLogo className="h-10 sm:h-12 w-auto" />
+            <GlobalMartLogo className="h-14 sm:h-16 w-auto" />
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3">
