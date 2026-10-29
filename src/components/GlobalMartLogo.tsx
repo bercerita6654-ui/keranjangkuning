@@ -16,8 +16,8 @@ export const GlobalMartLogo: React.FC<GlobalMartLogoProps> = ({
       <img
         src={gifUrl}
         alt="Yuk belanja"
-        loading="lazy"
-        className="h-full w-auto object-contain transform scale-130 min-h-[50px] sm:min-h-[64px]"
+        loading="eager"
+        className="h-full w-auto object-contain transform scale-[1.3] min-h-[50px] sm:min-h-[64px]"
       />
     );
   };
