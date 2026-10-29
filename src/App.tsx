@@ -2683,7 +2683,7 @@ export default function App() {
                       <p className="font-medium">Produk tidak ditemukan.</p>
                     </div>
                   ) : (
-                    paginatedProducts.map(product => {
+                    paginatedProducts.map((product, index) => {
                       const cartItem = cart.find(i => i.product.id === product.id);
                       const isInCart = !!cartItem;
                       
@@ -2722,8 +2722,18 @@ export default function App() {
                               
                               {/* Stock Indicators */}
                               <div className="flex gap-1.5 text-[8px] sm:text-[9px] font-semibold text-slate-500">
-                                <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150">Toko: {product.stok.toko}</span>
-                                <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150">Gudang: {product.stok.gudang}</span>
+                                <span
+                                  className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150"
+                                  style={index === 11 ? { fontSize: '15px', lineHeight: '13.5px' } : undefined}
+                                >
+                                  Toko: {product.stok.toko}
+                                </span>
+                                <span
+                                  className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-150"
+                                  style={index === 11 ? { height: '20.4844px', lineHeight: '13.5px', fontSize: '15px' } : undefined}
+                                >
+                                  Gudang: {product.stok.gudang}
+                                </span>
                               </div>
                             </div>
                             
