@@ -40,7 +40,8 @@ import {
   Eye,
   LayoutGrid,
   List as ListIcon,
-  RotateCcw
+  RotateCcw,
+  Clock
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -743,6 +744,14 @@ export default function App() {
     }
   }, [shopViewMode]);
 
+  const [stockLastUpdate, setStockLastUpdate] = useState<string>(() => {
+    try {
+      return localStorage.getItem('gm_stock_last_update') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
   // Filters & Search (Katalog)
   const [searchTermCatalog, setSearchTermCatalog] = useState('');
   const [currentPageCatalog, setCurrentPageCatalog] = useState(1);
@@ -1014,6 +1023,31 @@ export default function App() {
       const hargaParsed = parseCSV(hargaText);
       const masterStockParsed = parseCSV(masterStockText);
       const variasiParsed = variasiText ? parseCSV(variasiText) : [];
+
+      // Extract Last Update from Sheet STOCK LIST Column T (index 19)
+      let extractedStockLastUpdate = '';
+      if (stockListParsed.length > 0) {
+        for (let i = 0; i < stockListParsed.length; i++) {
+          const row = stockListParsed[i];
+          if (row && row.length > 19) {
+            const val = row[19] ? row[19].trim() : '';
+            if (val && val !== '-' && val !== '') {
+              if (i === 0 && (val.toLowerCase() === 'last update' || val.toLowerCase() === 'last_update')) {
+                continue;
+              }
+              extractedStockLastUpdate = val;
+              break;
+            }
+          }
+        }
+      }
+
+      if (extractedStockLastUpdate) {
+        setStockLastUpdate(extractedStockLastUpdate);
+        try {
+          localStorage.setItem('gm_stock_last_update', extractedStockLastUpdate);
+        } catch (e) {}
+      }
 
       // 1. Build lookup map from HARGA sheet
       const hargaMap: Record<string, { eceran: number; grosir: number; partai: number }> = {};
@@ -2467,14 +2501,27 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <button
-                    onClick={() => fetchData(true)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-lg transition-colors border border-primary-200 shadow-2xs active-tap cursor-pointer"
-                    id="btn-refresh-data"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'spin-slow' : ''}`} />
-                    <span>Refresh</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    {stockLastUpdate && (
+                      <div
+                        className="flex items-center gap-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] shadow-2xs transition-colors"
+                        title="Terakhir diperbarui dari Sheet STOCK LIST kolom T"
+                      >
+                        <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="text-slate-400 font-semibold">Last Update:</span>
+                        <span className="font-bold text-slate-700">{stockLastUpdate}</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => fetchData(true)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-lg transition-colors border border-primary-200 shadow-2xs active-tap cursor-pointer"
+                      id="btn-refresh-data"
+                      title="Muat ulang data terbaru"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'spin-slow' : ''}`} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex flex-col xl:flex-row gap-2 items-stretch xl:items-center">
@@ -2589,13 +2636,26 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <button
-                    onClick={() => fetchData(true)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    <span>Refresh</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    {stockLastUpdate && (
+                      <div
+                        className="flex items-center gap-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] shadow-2xs transition-colors"
+                        title="Terakhir diperbarui dari Sheet STOCK LIST kolom T"
+                      >
+                        <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="text-slate-400 font-semibold">Last Update:</span>
+                        <span className="font-bold text-slate-700">{stockLastUpdate}</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => fetchData(true)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
+                      title="Muat ulang data terbaru"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col xl:flex-row gap-2 items-stretch xl:items-center">
@@ -3309,6 +3369,16 @@ export default function App() {
                     <p className="text-sm text-gray-500 mt-1">Pilih produk ke dalam keranjang PDF untuk diekspor.</p>
                   </div>
                   <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 w-full sm:w-auto">
+                    {stockLastUpdate && (
+                      <div
+                        className="flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs shadow-2xs shrink-0"
+                        title="Terakhir diperbarui dari Sheet STOCK LIST kolom T"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="text-slate-400 font-semibold">Last Update:</span>
+                        <span className="font-bold text-slate-700">{stockLastUpdate}</span>
+                      </div>
+                    )}
                     <button
                       onClick={() => fetchData(true)}
                       className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3.5 py-2.5 rounded-xl transition-colors border border-blue-200 shadow-sm active-tap cursor-pointer shrink-0"
