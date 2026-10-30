@@ -886,6 +886,11 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
 
+  // 15-Minute Auto-Refresh
+  const AUTO_REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 menit
+  const lastFetchTimestampRef = useRef<number>(Date.now());
+  const autoRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load Initial Data & History
   useEffect(() => {
     fetchData();
@@ -903,6 +908,24 @@ export default function App() {
       setIsInIframe(true);
     }
 
+    // Auto-refresh interval: update data every 15 minutes
+    autoRefreshTimerRef.current = setInterval(() => {
+      if (navigator.onLine && !document.hidden) {
+        fetchData(true, true);
+      }
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    // If user returns to tab after 15+ minutes, trigger auto-refresh
+    const handleVisibilityChange = () => {
+      if (!document.hidden && navigator.onLine) {
+        const elapsed = Date.now() - lastFetchTimestampRef.current;
+        if (elapsed >= AUTO_REFRESH_INTERVAL_MS) {
+          fetchData(true, true);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Handle online/offline events
     const handleOnline = () => {
       setIsOnline(true);
@@ -914,6 +937,10 @@ export default function App() {
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      if (autoRefreshTimerRef.current) {
+        clearInterval(autoRefreshTimerRef.current);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -974,11 +1001,29 @@ export default function App() {
     setToast({ message, type });
   };
 
-  const fetchData = async (refresh = false) => {
+  const handleManualRefresh = () => {
+    if (isRefreshing) return;
+    // Reset timer interval agar menghitung 15 menit dari sekarang
+    if (autoRefreshTimerRef.current) {
+      clearInterval(autoRefreshTimerRef.current);
+    }
+    autoRefreshTimerRef.current = setInterval(() => {
+      if (navigator.onLine && !document.hidden) {
+        fetchData(true, true);
+      }
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    fetchData(true, false);
+  };
+
+  const fetchData = async (refresh = false, isBackground = false) => {
+    lastFetchTimestampRef.current = Date.now();
     if (refresh) {
       setIsRefreshing(true);
-      setLoading(true);
-      setLoadingText('Memperbarui Data...');
+      if (!isBackground) {
+        setLoading(true);
+        setLoadingText('Memperbarui Data...');
+      }
     } else {
       setLoading(true);
     }
@@ -1320,7 +1365,13 @@ export default function App() {
       setLoading(false);
       setIsRefreshing(false);
       setIsOnline(true);
-      if (refresh) showToast("Data produk berhasil diperbarui!", "success");
+      if (refresh) {
+        if (isBackground) {
+          showToast("Data produk diperbarui otomatis (15 menit)", "success");
+        } else {
+          showToast("Data produk berhasil diperbarui!", "success");
+        }
+      }
 
       // Save initial products to cache
       try {
@@ -1349,7 +1400,7 @@ export default function App() {
 
             setLoading(false);
             setIsRefreshing(false);
-            if (refresh) {
+            if (refresh && !isBackground) {
               showToast("Menggunakan data produk yang tersimpan.", "success");
             }
             return;
@@ -1361,10 +1412,14 @@ export default function App() {
 
       setLoading(false);
       setIsRefreshing(false);
-      if (products.length === 0) {
-        setErrorMsg(err.message || 'Koneksi lambat atau terputus saat memuat data');
+      if (!isBackground) {
+        if (products.length === 0) {
+          setErrorMsg(err.message || 'Koneksi lambat atau terputus saat memuat data');
+        } else {
+          showToast("Koneksi tidak stabil. Menampilkan data tersimpan.", "error");
+        }
       } else {
-        showToast("Koneksi tidak stabil. Menampilkan data tersimpan.", "error");
+        console.warn("Auto-refresh 15 menit gagal, mempertahankan data lokal:", err);
       }
     }
   };
@@ -2517,13 +2572,15 @@ export default function App() {
                       </div>
                     )}
                     <button
-                      onClick={() => fetchData(true)}
-                      className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-2 sm:px-2.5 py-1 rounded-lg transition-colors border border-primary-200 shadow-2xs active-tap cursor-pointer"
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing}
+                      className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 disabled:opacity-60 px-2 sm:px-2.5 py-1 rounded-lg transition-colors border border-primary-200 shadow-2xs active-tap cursor-pointer"
                       id="btn-refresh-data"
-                      title="Muat ulang data terbaru"
+                      title="Muat ulang data terbaru (Otomatis setiap 15 menit)"
                     >
                       <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'spin-slow' : ''}`} />
                       <span className="hidden xs:inline">Refresh</span>
+                      <span className="text-[9px] font-medium text-primary-500 hidden sm:inline" title="Otomatis setiap 15 menit">• 15m</span>
                     </button>
                   </div>
                 </div>
@@ -2649,12 +2706,14 @@ export default function App() {
                       </div>
                     )}
                     <button
-                      onClick={() => fetchData(true)}
-                      className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-gray-600 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-2 sm:px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
-                      title="Muat ulang data terbaru"
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing}
+                      className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-gray-600 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 disabled:opacity-60 px-2 sm:px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
+                      title="Muat ulang data terbaru (Otomatis setiap 15 menit)"
                     >
-                      <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'spin-slow' : ''}`} />
                       <span className="hidden xs:inline">Refresh</span>
+                      <span className="text-[9px] font-medium text-gray-400 hidden sm:inline" title="Otomatis setiap 15 menit">• 15m</span>
                     </button>
                   </div>
                 </div>
@@ -3450,12 +3509,14 @@ export default function App() {
                       </div>
                     )}
                     <button
-                      onClick={() => fetchData(true)}
-                      className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3.5 py-2.5 rounded-xl transition-colors border border-blue-200 shadow-sm active-tap cursor-pointer shrink-0"
-                      title="Tarik data terbaru dari Google Sheets"
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing}
+                      className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-60 px-3.5 py-2.5 rounded-xl transition-colors border border-blue-200 shadow-sm active-tap cursor-pointer shrink-0"
+                      title="Tarik data terbaru dari Google Sheets (Otomatis setiap 15 menit)"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'spin-slow' : ''}`} />
                       <span>Refresh Data</span>
+                      <span className="text-[10px] font-medium text-blue-500 hidden sm:inline">(Auto 15m)</span>
                     </button>
                     <div className="relative flex-1 sm:w-72">
                       <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
