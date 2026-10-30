@@ -17,7 +17,7 @@ export const GlobalMartLogo: React.FC<GlobalMartLogoProps> = ({
         src={gifUrl}
         alt="Yuk belanja"
         loading="eager"
-        className="h-full w-auto object-contain transform scale-[1.3] min-h-[50px] sm:min-h-[64px]"
+        className="h-full w-auto object-contain max-h-8 sm:max-h-10"
       />
     );
   };
@@ -31,7 +31,7 @@ export const GlobalMartLogo: React.FC<GlobalMartLogoProps> = ({
   }
 
   return (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
+    <div className={`inline-flex items-center gap-1.5 sm:gap-2.5 select-none ${className}`}>
       {/* Animated Icon GIF Container */}
       <div className="h-full aspect-square relative shrink-0 flex items-center justify-center p-0.5">
         {renderIcon()}
@@ -40,7 +40,7 @@ export const GlobalMartLogo: React.FC<GlobalMartLogoProps> = ({
       {/* Yellow Brand Banner Box */}
       <svg 
         viewBox="0 0 425 88" 
-        className="h-full w-auto max-w-full drop-shadow-sm overflow-visible shrink-0" 
+        className="h-full w-auto max-w-[160px] xs:max-w-[200px] sm:max-w-[260px] md:max-w-none drop-shadow-xs shrink-0" 
         xmlns="http://www.w3.org/2000/svg"
       >
         <g id="banner">

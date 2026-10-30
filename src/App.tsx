@@ -2260,21 +2260,22 @@ export default function App() {
       )}
 
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-[90] border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <GlobalMartLogo className="h-14 sm:h-16 w-auto" />
+      <header className="bg-white/95 backdrop-blur-md shadow-xs sticky top-0 z-[90] border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink">
+            <GlobalMartLogo className="h-7 sm:h-9 w-auto shrink" />
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Theme Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-                className="flex items-center gap-1 font-bold bg-white text-gray-700 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors active-tap cursor-pointer"
+                className="flex items-center gap-1 font-bold bg-white text-gray-700 p-1.5 sm:px-3 sm:py-1.5 rounded-full shadow-2xs border border-gray-200 hover:bg-gray-50 transition-colors active-tap cursor-pointer"
+                title="Pilih Tema Warna"
               >
-                <Palette className="w-4 h-4 text-primary-500" />
-                <span className="hidden sm:inline text-sm">Tema</span>
+                <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-500" />
+                <span className="hidden sm:inline text-xs sm:text-sm">Tema</span>
               </button>
               
               {themeMenuOpen && (
@@ -2317,32 +2318,33 @@ export default function App() {
 
             <button
               onClick={() => setHistoryOpen(true)}
-              className="flex items-center gap-1 font-bold bg-white text-gray-700 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors active-tap cursor-pointer"
+              className="flex items-center gap-1 font-bold bg-white text-gray-700 p-1.5 sm:px-3 sm:py-1.5 rounded-full shadow-2xs border border-gray-200 hover:bg-gray-50 transition-colors active-tap cursor-pointer"
+              title="Riwayat Pesanan"
             >
-              <History className="w-4 h-4 text-primary-500" />
-              <span className="hidden sm:inline text-sm">Riwayat</span>
+              <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-500" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Riwayat</span>
             </button>
-            <div className="flex items-center gap-1.5 font-bold bg-primary-100 px-3 sm:px-4 py-1.5 rounded-full text-primary-800">
-              <span>{cartQty}</span> <span className="text-sm font-medium">Items</span>
+            <div className="flex items-center gap-1 font-bold bg-primary-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-primary-800 text-xs sm:text-sm shrink-0">
+              <span>{cartQty}</span> <span className="text-[10px] sm:text-xs font-semibold">Items</span>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 relative">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 pt-3 sm:pt-6 pb-28 sm:pb-36 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 relative">
         
         {/* Left Column: Products & Catalog */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-5">
           
           {/* FROZEN STICKY TOP CONTROLS (Data Pelanggan & Menu Daftar Produk) */}
-          <div className="sticky top-16 sm:top-20 z-30 bg-slate-50/95 backdrop-blur-md pt-0.5 pb-2.5 -mx-1 sm:-mx-2 px-1 sm:px-2 flex flex-col gap-2.5 border-b border-gray-200/60 shadow-xs">
+          <div className="sticky top-14 sm:top-16 z-30 bg-slate-50/95 backdrop-blur-md pt-0.5 pb-2 -mx-1 sm:-mx-2 px-1 sm:px-2 flex flex-col gap-2 border-b border-gray-200/60 shadow-2xs">
             
             {/* Row 1: Tab Switcher Menu */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex gap-1.5 sm:gap-2 bg-white p-1.5 rounded-xl shadow-2xs border border-gray-200 w-full sm:w-fit overflow-x-auto">
+            <div className="flex items-center justify-between gap-1.5 flex-wrap">
+              <div className="flex gap-1 sm:gap-2 bg-white p-1 sm:p-1.5 rounded-xl shadow-2xs border border-gray-200 w-full sm:w-fit overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('shop')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
                     activeTab === 'shop'
                       ? 'bg-primary-400 text-primary-900 shadow-xs'
                       : 'text-gray-500 hover:bg-gray-50'
@@ -2352,7 +2354,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('order_khusus')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
                     activeTab === 'order_khusus'
                       ? 'bg-primary-400 text-primary-900 shadow-xs'
                       : 'text-gray-500 hover:bg-gray-50'
@@ -2362,7 +2364,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('catalog')}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all active-tap cursor-pointer whitespace-nowrap text-xs sm:text-sm ${
                     activeTab === 'catalog'
                       ? 'bg-primary-400 text-primary-900 shadow-xs'
                       : 'text-gray-500 hover:bg-gray-50'
@@ -2381,19 +2383,19 @@ export default function App() {
 
             {/* Row 2: Informasi Data Pelanggan Card (Active in Shop & Orderan Khusus) */}
             {(activeTab === 'shop' || activeTab === 'order_khusus') && (
-              <div className="bg-white p-2.5 sm:p-3.5 rounded-xl shadow-xs border border-gray-200 transition-all">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-primary-100 text-primary-600 p-1 rounded-md">
-                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <div className="bg-white p-2 sm:p-3 rounded-xl shadow-2xs border border-gray-200 transition-all">
+                <div className="flex items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div className="bg-primary-100 text-primary-600 p-1 rounded-md shrink-0">
+                      <User className="w-3.5 h-3.5" />
                     </div>
-                    <span className="font-extrabold text-xs sm:text-sm text-gray-800">Data Pelanggan</span>
+                    <span className="font-extrabold text-xs sm:text-sm text-gray-800 shrink-0">Data Pelanggan</span>
                     {customerName.trim() ? (
-                      <span className="text-[10px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Check className="w-3 h-3 stroke-[3]" /> {customerName}
+                      <span className="text-[10px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1 truncate">
+                        <Check className="w-3 h-3 stroke-[3] shrink-0" /> <span className="truncate">{customerName}</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] sm:text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] sm:text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0">
                         Wajib Diisi
                       </span>
                     )}
@@ -2402,7 +2404,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsCustomerDataExpanded(!isCustomerDataExpanded)}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-[11px] font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors cursor-pointer shrink-0"
                     title={isCustomerDataExpanded ? "Perkecil Informasi Data Pelanggan" : "Tampilkan Kolom Data Pelanggan"}
                   >
                     <span>{isCustomerDataExpanded ? "Ringkas" : "Ubah"}</span>
@@ -2411,20 +2413,21 @@ export default function App() {
                 </div>
 
                 {isCustomerDataExpanded ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2.5 pt-2.5 border-t border-gray-100 animate-fadeIn">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-100 animate-fadeIn">
                     <div>
                       <label className="block text-[10px] sm:text-[11px] font-bold text-gray-600 mb-1">
                         Nama Customer <span className="text-red-500">*</span>
                       </label>
                       <div className="relative group">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
+                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
                           <User className="w-3.5 h-3.5" />
                         </span>
                         <input
                           type="text"
+                          inputMode="text"
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
-                          className="w-full pl-8.5 pr-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-xs sm:text-sm font-medium bg-gray-50/40 focus:bg-white"
+                          className="w-full pl-8 pr-2.5 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-xs font-medium bg-gray-50/40 focus:bg-white"
                           placeholder="Nama Lengkap Pemesan"
                         />
                       </div>
@@ -2434,14 +2437,15 @@ export default function App() {
                         No. WhatsApp <span className="text-gray-400 font-normal">(Opsional)</span>
                       </label>
                       <div className="relative group">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
+                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
                           <Phone className="w-3.5 h-3.5" />
                         </span>
                         <input
                           type="tel"
+                          inputMode="tel"
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value)}
-                          className="w-full pl-8.5 pr-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-xs sm:text-sm font-medium bg-gray-50/40 focus:bg-white"
+                          className="w-full pl-8 pr-2.5 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-xs font-medium bg-gray-50/40 focus:bg-white"
                           placeholder="Contoh: 08123456789"
                         />
                       </div>
@@ -2449,7 +2453,7 @@ export default function App() {
                   </div>
                 ) : (
                   customerPhone && (
-                    <div className="text-[11px] text-gray-500 mt-1 pl-6">
+                    <div className="text-[10px] sm:text-[11px] text-gray-500 mt-1 pl-5">
                       WA: <strong className="text-gray-700">{customerPhone}</strong>
                     </div>
                   )
@@ -2459,9 +2463,9 @@ export default function App() {
 
             {/* Row 3 (Belanja): Menu Daftar Produk (Controls, Search, Filter) */}
             {activeTab === 'shop' && (
-              <div className="bg-white p-2.5 sm:p-3.5 rounded-xl shadow-xs border border-gray-200 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
+              <div className="bg-white p-2 sm:p-3 rounded-xl shadow-2xs border border-gray-200 flex flex-col gap-2">
+                <div className="flex items-center justify-between flex-wrap gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <h2 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5">
                       <div className="bg-primary-100 text-primary-600 p-1 rounded-md">
                         <Package className="w-3.5 h-3.5" />
@@ -2469,11 +2473,11 @@ export default function App() {
                       Daftar Produk
                     </h2>
                     <span className="bg-primary-100 text-primary-800 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full">
-                      {filteredProducts.length} Produk
+                      {filteredProducts.length}
                     </span>
                     
                     {/* View Switcher Controls */}
-                    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 ml-1">
                       <button
                         type="button"
                         onClick={() => setShopViewMode('grid')}
@@ -2501,92 +2505,89 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                     {stockLastUpdate && (
                       <div
-                        className="flex items-center gap-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] shadow-2xs transition-colors"
+                        className="flex items-center gap-1 bg-slate-50 border border-slate-200 text-slate-600 px-2 py-1 rounded-lg text-[9px] sm:text-[11px] shadow-2xs"
                         title="Terakhir diperbarui dari Sheet STOCK LIST kolom T"
                       >
                         <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span className="text-slate-400 font-semibold">Last Update:</span>
+                        <span className="text-slate-400 font-semibold hidden xs:inline">Last Update:</span>
                         <span className="font-bold text-slate-700">{stockLastUpdate}</span>
                       </div>
                     )}
                     <button
                       onClick={() => fetchData(true)}
-                      className="flex items-center gap-1 text-[11px] font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-lg transition-colors border border-primary-200 shadow-2xs active-tap cursor-pointer"
+                      className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-2 sm:px-2.5 py-1 rounded-lg transition-colors border border-primary-200 shadow-2xs active-tap cursor-pointer"
                       id="btn-refresh-data"
                       title="Muat ulang data terbaru"
                     >
                       <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'spin-slow' : ''}`} />
-                      <span>Refresh</span>
+                      <span className="hidden xs:inline">Refresh</span>
                     </button>
                   </div>
                 </div>
                 
-                <div className="flex flex-col xl:flex-row gap-2 items-stretch xl:items-center">
-                  <div className="flex items-center gap-2 flex-1">
+                <div className="flex flex-col xl:flex-row gap-1.5 sm:gap-2 items-stretch xl:items-center">
+                  <div className="flex items-center gap-1.5 flex-1">
                     <div className="relative flex-1">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
+                      <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 pointer-events-none">
                         <Search className="w-3.5 h-3.5" />
                       </span>
                       <input
                         type="text"
                         value={searchTerm}
                         onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        className="w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-xs transition-all font-medium"
-                        placeholder="Cari nama produk / SKU acak..."
+                        className="w-full pl-8 pr-2.5 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-xs transition-all font-medium"
+                        placeholder="Cari nama produk / SKU..."
                       />
                     </div>
                     <button
                       onClick={() => setScannerOpen(true)}
-                      className="active-tap p-1.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-lg transition-colors flex-shrink-0 shadow-2xs border border-primary-200 h-8 aspect-square flex items-center justify-center cursor-pointer"
+                      className="active-tap p-1.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-lg transition-colors flex-shrink-0 shadow-2xs border border-primary-200 h-7 sm:h-8 aspect-square flex items-center justify-center cursor-pointer"
                       title="Scan Barcode"
                     >
                       <ScanLine className="w-4 h-4" />
                     </button>
                   </div>
                   
-                  <div className="flex gap-1.5 flex-col sm:flex-row w-full xl:w-auto">
+                  {/* Clean 3-Column Grid on Mobile, inline on desktop */}
+                  <div className="grid grid-cols-3 sm:flex gap-1 sm:gap-1.5 w-full xl:w-auto">
                     <select
                       value={globalPriceTier}
                       onChange={(e) => setGlobalPriceTier(e.target.value as any)}
-                      className="w-full sm:w-auto text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs flex-shrink-0"
+                      className="w-full sm:w-auto text-[10px] sm:text-xs border border-gray-200 rounded-lg py-1.5 px-1 sm:px-2 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs truncate"
                     >
-                      <option value="eceran">Semua: Eceran</option>
-                      <option value="grosir">Semua: Grosir</option>
-                      <option value="partai">Semua: Partai</option>
+                      <option value="eceran">Eceran</option>
+                      <option value="grosir">Grosir</option>
+                      <option value="partai">Partai</option>
                     </select>
 
-                    {availableCategories.length > 0 && (
-                      <div className="relative w-full sm:w-36 flex-shrink-0">
-                        <select
-                          value={selectedCategory}
-                          onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
-                        >
-                          <option value="">Semua Kategori</option>
-                          {availableCategories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    <div className="relative w-full sm:w-36">
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
+                        className="w-full text-[10px] sm:text-xs border border-gray-200 rounded-lg py-1.5 px-1 sm:px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs truncate"
+                      >
+                        <option value="">Kategori: Semua</option>
+                        {availableCategories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                    {availableBrands.length > 0 && (
-                      <div className="relative w-full sm:w-36 flex-shrink-0">
-                        <select
-                          value={selectedBrand}
-                          onChange={(e) => { setSelectedBrand(e.target.value); setCurrentPage(1); }}
-                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
-                        >
-                          <option value="">Semua Merk</option>
-                          {availableBrands.map(b => (
-                            <option key={b} value={b}>{b}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    <div className="relative w-full sm:w-36">
+                      <select
+                        value={selectedBrand}
+                        onChange={(e) => { setSelectedBrand(e.target.value); setCurrentPage(1); }}
+                        className="w-full text-[10px] sm:text-xs border border-gray-200 rounded-lg py-1.5 px-1 sm:px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs truncate"
+                      >
+                        <option value="">Merk: Semua</option>
+                        {availableBrands.map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2594,9 +2595,9 @@ export default function App() {
 
             {/* Row 3 (Orderan Khusus): Menu Orderan Khusus (Controls, Search, Filter) */}
             {activeTab === 'order_khusus' && (
-              <div className="bg-white p-2.5 sm:p-3.5 rounded-xl shadow-xs border border-gray-200 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
+              <div className="bg-white p-2 sm:p-3 rounded-xl shadow-2xs border border-gray-200 flex flex-col gap-2">
+                <div className="flex items-center justify-between flex-wrap gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <h2 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5">
                       <div className="bg-primary-100 text-primary-600 p-1 rounded-md">
                         <ShoppingBag className="w-3.5 h-3.5" />
@@ -2604,11 +2605,11 @@ export default function App() {
                       Orderan Khusus
                     </h2>
                     <span className="bg-primary-100 text-primary-800 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full">
-                      {filteredOrderKhususProducts.length} Produk
+                      {filteredOrderKhususProducts.length}
                     </span>
                     
                     {/* View Switcher Controls */}
-                    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 ml-1">
                       <button
                         type="button"
                         onClick={() => setShopViewMode('grid')}
@@ -2636,70 +2637,71 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                     {stockLastUpdate && (
                       <div
-                        className="flex items-center gap-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] shadow-2xs transition-colors"
+                        className="flex items-center gap-1 bg-slate-50 border border-slate-200 text-slate-600 px-2 py-1 rounded-lg text-[9px] sm:text-[11px] shadow-2xs"
                         title="Terakhir diperbarui dari Sheet STOCK LIST kolom T"
                       >
                         <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span className="text-slate-400 font-semibold">Last Update:</span>
+                        <span className="text-slate-400 font-semibold hidden xs:inline">Last Update:</span>
                         <span className="font-bold text-slate-700">{stockLastUpdate}</span>
                       </div>
                     )}
                     <button
                       onClick={() => fetchData(true)}
-                      className="flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
+                      className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-gray-600 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-2 sm:px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
                       title="Muat ulang data terbaru"
                     >
                       <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      <span>Refresh</span>
+                      <span className="hidden xs:inline">Refresh</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="flex flex-col xl:flex-row gap-2 items-stretch xl:items-center">
-                  <div className="flex items-center gap-2 flex-1">
+                <div className="flex flex-col xl:flex-row gap-1.5 sm:gap-2 items-stretch xl:items-center">
+                  <div className="flex items-center gap-1.5 flex-1">
                     <div className="relative flex-1">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
+                      <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 pointer-events-none">
                         <Search className="w-3.5 h-3.5" />
                       </span>
                       <input
                         type="text"
                         value={searchTermOrderKhusus}
                         onChange={(e) => { setSearchTermOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
-                        className="w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-xs transition-all font-medium"
+                        className="w-full pl-8 pr-2.5 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none bg-gray-50/50 text-xs transition-all font-medium"
                         placeholder="Cari produk orderan khusus / SKU..."
                       />
                     </div>
                     <button
                       onClick={() => setScannerOpen(true)}
-                      className="active-tap p-1.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-lg transition-colors flex-shrink-0 shadow-2xs border border-primary-200 h-8 aspect-square flex items-center justify-center cursor-pointer"
+                      className="active-tap p-1.5 bg-primary-100 text-primary-600 hover:bg-primary-200 rounded-lg transition-colors flex-shrink-0 shadow-2xs border border-primary-200 h-7 sm:h-8 aspect-square flex items-center justify-center cursor-pointer"
                       title="Scan Barcode"
                     >
                       <ScanLine className="w-4 h-4" />
                     </button>
                   </div>
                   
-                  <div className="flex gap-1.5 flex-col sm:flex-row w-full xl:w-auto">
+                  {/* Clean 3-Column Grid on Mobile */}
+                  <div className="grid grid-cols-3 sm:flex gap-1 sm:gap-1.5 w-full xl:w-auto">
                     <select
                       value={globalPriceTier}
                       onChange={(e) => setGlobalPriceTier(e.target.value as any)}
-                      className="w-full sm:w-auto text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs flex-shrink-0"
+                      className="w-full sm:w-auto text-[10px] sm:text-xs border border-gray-200 rounded-lg py-1.5 px-1 sm:px-2 bg-white text-primary-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs truncate"
                     >
-                      <option value="eceran">Semua: Eceran</option>
-                      <option value="grosir">Semua: Grosir</option>
-                      <option value="partai">Semua: Partai</option>
+                      <option value="eceran">Eceran</option>
+                      <option value="grosir">Grosir</option>
+                      <option value="partai">Partai</option>
                     </select>
 
                     {availableCategoriesOrderKhusus.length > 0 && (
-                      <div className="relative w-full sm:w-36 flex-shrink-0">
+                      <div className="relative w-full sm:w-36">
                         <select
                           value={selectedCategoryOrderKhusus}
                           onChange={(e) => { setSelectedCategoryOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
-                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
+                          className="w-full text-[10px] sm:text-xs border border-gray-200 rounded-lg py-1.5 px-1 sm:px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs truncate"
                         >
-                          <option value="">Semua Kategori</option>
+                          <option value="">Kategori: Semua</option>
                           {availableCategoriesOrderKhusus.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
                           ))}
@@ -2708,13 +2710,13 @@ export default function App() {
                     )}
 
                     {availableBrandsOrderKhusus.length > 0 && (
-                      <div className="relative w-full sm:w-36 flex-shrink-0">
+                      <div className="relative w-full sm:w-36">
                         <select
                           value={selectedBrandOrderKhusus}
                           onChange={(e) => { setSelectedBrandOrderKhusus(e.target.value); setCurrentPageOrderKhusus(1); }}
-                          className="w-full text-xs border border-gray-200 rounded-lg py-1.5 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs"
+                          className="w-full text-[10px] sm:text-xs border border-gray-200 rounded-lg py-1.5 px-1 sm:px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors cursor-pointer outline-none shadow-2xs truncate"
                         >
-                          <option value="">Semua Merk</option>
+                          <option value="">Merk: Semua</option>
                           {availableBrandsOrderKhusus.map(b => (
                             <option key={b} value={b}>{b}</option>
                           ))}
@@ -2798,11 +2800,11 @@ export default function App() {
                             </div>
                             
                             {/* Price Selector and Actions (Right) */}
-                            <div className="w-28 sm:w-44 flex flex-col justify-center shrink-0">
+                            <div className="w-32 sm:w-44 flex flex-col justify-center shrink-0">
                               <select
                                 value={activeTier}
                                 onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
-                                className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-1 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-no-repeat bg-[position:right_6px_center] pr-4"
+                                className="w-full text-[10px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-no-repeat bg-[position:right_6px_center] pr-4 truncate"
                               >
                                 <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
                                 <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
@@ -2811,13 +2813,19 @@ export default function App() {
                               </select>
                               
                               {activeTier === 'custom' && (
-                                <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1">
-                                  <span className="bg-gray-150 text-gray-400 px-1 py-0.5 text-[8px] font-bold border-r border-gray-200">Rp</span>
+                                <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1.5">
+                                  <span className="bg-gray-150 text-gray-400 px-1 py-1 text-[9px] font-bold border-r border-gray-200">Rp</span>
                                   <input
                                     type="number"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     value={activeCustomPrice || ''}
+                                    onFocus={(e) => {
+                                      e.target.select();
+                                      setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                    }}
                                     onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
-                                    className="w-full px-1 py-0.5 text-[9px] font-bold text-gray-800 outline-none"
+                                    className="w-full px-1.5 py-1 text-[10px] font-bold text-gray-800 outline-none"
                                     placeholder="0"
                                   />
                                 </div>
@@ -2827,35 +2835,46 @@ export default function App() {
                                 {isInCart ? (
                                   <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5">
                                     <button
+                                      type="button"
                                       onClick={() => updateCartQty(product.id, -1)}
-                                      className={`active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                      className={`active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer shrink-0 ${
                                         cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
                                       }`}
+                                      title={cartItem.qty === 1 ? 'Hapus' : 'Kurang'}
                                     >
-                                      {cartItem.qty === 1 ? <Trash2 className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+                                      {cartItem.qty === 1 ? <Trash2 className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
                                     </button>
-                                    <div className="flex flex-col items-center justify-center">
+                                    <div className="flex-1 flex items-center justify-center px-1">
                                       <input
                                         type="number"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
                                         value={cartItem.qty}
+                                        onFocus={(e) => {
+                                          e.target.select();
+                                          setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                        }}
                                         onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
-                                        className="text-[9px] sm:text-xs font-black w-6 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
+                                        className="text-xs sm:text-sm font-black w-10 sm:w-12 text-center bg-white border border-primary-200 py-0.5 outline-none text-primary-900 focus:ring-2 focus:ring-primary-400 rounded-md transition-all shadow-2xs"
                                         min="0"
                                       />
                                     </div>
                                     <button
+                                      type="button"
                                       onClick={() => updateCartQty(product.id, 1)}
-                                      className="active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
+                                      className="active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer shrink-0"
+                                      title="Tambah"
                                     >
-                                      <Plus className="w-2.5 h-2.5" />
+                                      <Plus className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
                                 ) : (
                                   <button
+                                    type="button"
                                     onClick={() => addToCart(product.id)}
-                                    className="active-tap w-full py-1 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[9px] sm:text-xs cursor-pointer"
+                                    className="active-tap w-full py-1.5 sm:py-2 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[10px] sm:text-xs cursor-pointer"
                                   >
-                                    <PlusCircle className="w-3 h-3" />
+                                    <PlusCircle className="w-3.5 h-3.5" />
                                     <span>Tambah</span>
                                   </button>
                                 )}
@@ -2926,7 +2945,7 @@ export default function App() {
                             <select
                               value={activeTier}
                               onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
-                              className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-no-repeat bg-[position:right_6px_center] pr-4"
+                              className="w-full text-[10px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_8px] bg-no-repeat bg-[position:right_6px_center] pr-4 truncate"
                             >
                               <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
                               <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
@@ -2939,7 +2958,13 @@ export default function App() {
                                 <span className="bg-gray-150 text-gray-400 px-1.5 py-1 text-[8px] font-bold border-r border-gray-200">Rp</span>
                                 <input
                                   type="number"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={activeCustomPrice || ''}
+                                  onFocus={(e) => {
+                                    e.target.select();
+                                    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                  }}
                                   onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
                                   className="w-full px-1.5 py-1 text-[10px] font-bold text-gray-800 outline-none"
                                   placeholder="0"
@@ -2951,32 +2976,43 @@ export default function App() {
                               {isInCart ? (
                                 <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5 mt-0.5">
                                   <button
+                                    type="button"
                                     onClick={() => updateCartQty(product.id, -1)}
-                                    className={`active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                    className={`active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer shrink-0 ${
                                       cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
                                     }`}
+                                    title={cartItem.qty === 1 ? 'Hapus' : 'Kurang'}
                                   >
-                                    {cartItem.qty === 1 ? <Trash2 className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                                    {cartItem.qty === 1 ? <Trash2 className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
                                   </button>
-                                  <div className="flex flex-col items-center justify-center">
-                                    <span className="text-[7px] font-bold text-primary-600 uppercase tracking-wider mb-[-4px]">Qty</span>
+                                  <div className="flex-1 flex flex-col items-center justify-center px-1">
+                                    <span className="text-[7px] font-bold text-primary-600 uppercase tracking-wider mb-[-2px]">Qty</span>
                                     <input
                                       type="number"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
                                       value={cartItem.qty}
+                                      onFocus={(e) => {
+                                        e.target.select();
+                                        setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                      }}
                                       onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
-                                      className="text-[10px] sm:text-xs font-black w-7 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
+                                      className="text-xs sm:text-sm font-black w-10 sm:w-12 text-center bg-white border border-primary-200 py-0.5 outline-none text-primary-900 focus:ring-2 focus:ring-primary-400 rounded-md transition-all shadow-2xs"
                                       min="0"
                                     />
                                   </div>
                                   <button
+                                    type="button"
                                     onClick={() => updateCartQty(product.id, 1)}
-                                    className="active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
+                                    className="active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer shrink-0"
+                                    title="Tambah"
                                   >
-                                    <Plus className="w-3 h-3" />
+                                    <Plus className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               ) : (
                                 <button
+                                  type="button"
                                   onClick={() => addToCart(product.id)}
                                   className="active-tap w-full py-1.5 sm:py-2 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[10px] sm:text-xs mt-0.5 cursor-pointer"
                                 >
@@ -3125,11 +3161,11 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div className="w-28 sm:w-44 flex flex-col justify-center shrink-0">
+                            <div className="w-32 sm:w-44 flex flex-col justify-center shrink-0">
                               <select
                                 value={activeTier}
                                 onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
-                                className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-1 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors pr-4"
+                                className="w-full text-[10px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1 sm:p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors pr-4 truncate"
                               >
                                 <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
                                 <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
@@ -3138,13 +3174,19 @@ export default function App() {
                               </select>
                               
                               {activeTier === 'custom' && (
-                                <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1">
-                                  <span className="bg-gray-150 text-gray-400 px-1 py-0.5 text-[8px] font-bold border-r border-gray-200">Rp</span>
+                                <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-primary-400 shadow-xs mb-1.5">
+                                  <span className="bg-gray-150 text-gray-400 px-1 py-1 text-[9px] font-bold border-r border-gray-200">Rp</span>
                                   <input
                                     type="number"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     value={activeCustomPrice || ''}
+                                    onFocus={(e) => {
+                                      e.target.select();
+                                      setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                    }}
                                     onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
-                                    className="w-full px-1 py-0.5 text-[9px] font-bold text-gray-800 outline-none"
+                                    className="w-full px-1.5 py-1 text-[10px] font-bold text-gray-800 outline-none"
                                     placeholder="0"
                                   />
                                 </div>
@@ -3154,35 +3196,46 @@ export default function App() {
                                 {isInCart ? (
                                   <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5">
                                     <button
+                                      type="button"
                                       onClick={() => updateCartQty(product.id, -1)}
-                                      className={`active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                      className={`active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer shrink-0 ${
                                         cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
                                       }`}
+                                      title={cartItem.qty === 1 ? 'Hapus' : 'Kurang'}
                                     >
-                                      {cartItem.qty === 1 ? <Trash2 className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+                                      {cartItem.qty === 1 ? <Trash2 className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
                                     </button>
-                                    <div className="flex flex-col items-center justify-center">
+                                    <div className="flex-1 flex items-center justify-center px-1">
                                       <input
                                         type="number"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
                                         value={cartItem.qty}
+                                        onFocus={(e) => {
+                                          e.target.select();
+                                          setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                        }}
                                         onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
-                                        className="text-[9px] sm:text-xs font-black w-6 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
+                                        className="text-xs sm:text-sm font-black w-10 sm:w-12 text-center bg-white border border-primary-200 py-0.5 outline-none text-primary-900 focus:ring-2 focus:ring-primary-400 rounded-md transition-all shadow-2xs"
                                         min="0"
                                       />
                                     </div>
                                     <button
+                                      type="button"
                                       onClick={() => updateCartQty(product.id, 1)}
-                                      className="active-tap w-6 h-6 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
+                                      className="active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer shrink-0"
+                                      title="Tambah"
                                     >
-                                      <Plus className="w-2.5 h-2.5" />
+                                      <Plus className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
                                 ) : (
                                   <button
+                                    type="button"
                                     onClick={() => addToCart(product.id)}
-                                    className="active-tap w-full py-1 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[9px] sm:text-xs cursor-pointer"
+                                    className="active-tap w-full py-1.5 sm:py-2 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[10px] sm:text-xs cursor-pointer"
                                   >
-                                    <PlusCircle className="w-3 h-3" />
+                                    <PlusCircle className="w-3.5 h-3.5" />
                                     <span>Tambah</span>
                                   </button>
                                 )}
@@ -3245,7 +3298,7 @@ export default function App() {
                             <select
                               value={activeTier}
                               onChange={(e) => handleProductPriceTierChange(product.id, e.target.value as any)}
-                              className="w-full text-[9px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors pr-4"
+                              className="w-full text-[10px] sm:text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-1.5 mb-1.5 appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary-400 transition-colors pr-4 truncate"
                             >
                               <option value="eceran">Ecr: {formatRupiah(product.harga.eceran)} /{product.unit}</option>
                               <option value="grosir">Grs: {formatRupiah(product.harga.grosir)} /{product.unit}</option>
@@ -3258,7 +3311,13 @@ export default function App() {
                                 <span className="bg-gray-150 text-gray-400 px-1.5 py-1 text-[8px] font-bold border-r border-gray-200">Rp</span>
                                 <input
                                   type="number"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={activeCustomPrice || ''}
+                                  onFocus={(e) => {
+                                    e.target.select();
+                                    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                  }}
                                   onChange={(e) => handleProductCustomPriceChange(product.id, parseInt(e.target.value) || 0)}
                                   className="w-full px-1.5 py-1 text-[10px] font-bold text-gray-800 outline-none"
                                   placeholder="0"
@@ -3270,32 +3329,43 @@ export default function App() {
                               {isInCart ? (
                                 <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-lg p-0.5 mt-0.5">
                                   <button
+                                    type="button"
                                     onClick={() => updateCartQty(product.id, -1)}
-                                    className={`active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer ${
+                                    className={`active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md shadow-xs border cursor-pointer shrink-0 ${
                                       cartItem.qty === 1 ? 'text-red-500 hover:bg-red-50 border-red-100' : 'text-primary-600 hover:bg-primary-50 border-primary-100'
                                     }`}
+                                    title={cartItem.qty === 1 ? 'Hapus' : 'Kurang'}
                                   >
-                                    {cartItem.qty === 1 ? <Trash2 className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                                    {cartItem.qty === 1 ? <Trash2 className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
                                   </button>
-                                  <div className="flex flex-col items-center justify-center">
-                                    <span className="text-[7px] font-bold text-primary-600 uppercase tracking-wider mb-[-4px]">Qty</span>
+                                  <div className="flex-1 flex flex-col items-center justify-center px-1">
+                                    <span className="text-[7px] font-bold text-primary-600 uppercase tracking-wider mb-[-2px]">Qty</span>
                                     <input
                                       type="number"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
                                       value={cartItem.qty}
+                                      onFocus={(e) => {
+                                        e.target.select();
+                                        setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                                      }}
                                       onChange={(e) => updateCartQtyManual(product.id, parseInt(e.target.value) || 0)}
-                                      className="text-[10px] sm:text-xs font-black w-7 text-center bg-transparent outline-none text-primary-850 focus:bg-white focus:ring-1 focus:ring-primary-400 rounded-md transition-all"
+                                      className="text-xs sm:text-sm font-black w-10 sm:w-12 text-center bg-white border border-primary-200 py-0.5 outline-none text-primary-900 focus:ring-2 focus:ring-primary-400 rounded-md transition-all shadow-2xs"
                                       min="0"
                                     />
                                   </div>
                                   <button
+                                    type="button"
                                     onClick={() => updateCartQty(product.id, 1)}
-                                    className="active-tap w-7 h-7 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer"
+                                    className="active-tap w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center bg-white rounded-md text-primary-600 hover:bg-primary-50 shadow-xs border border-primary-100 cursor-pointer shrink-0"
+                                    title="Tambah"
                                   >
-                                    <Plus className="w-3 h-3" />
+                                    <Plus className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               ) : (
                                 <button
+                                  type="button"
                                   onClick={() => addToCart(product.id)}
                                   className="active-tap w-full py-1.5 sm:py-2 bg-primary-400 hover:bg-primary-500 text-primary-950 font-bold rounded-lg flex items-center justify-center gap-1 transition-all shadow-xs text-[10px] sm:text-xs mt-0.5 cursor-pointer"
                                 >
@@ -4314,7 +4384,10 @@ export default function App() {
                                 <span className="bg-gray-100 text-gray-500 px-3 py-1.5 text-xs font-bold border-r border-gray-300">Rp</span>
                                 <input
                                   type="number"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={item.customPrice || ''}
+                                  onFocus={(e) => e.target.select()}
                                   onChange={(e) => updateCartCustomPrice(item.product.id, parseInt(e.target.value) || 0)}
                                   className="w-full px-2 py-1.5 text-sm font-bold text-gray-800 outline-none"
                                   placeholder="0"
@@ -4335,19 +4408,24 @@ export default function App() {
                               <button
                                 onClick={() => updateCartQty(item.product.id, -1)}
                                 className="active-tap w-8 h-8 flex items-center justify-center bg-white rounded-lg text-gray-600 hover:text-gray-900 shadow-sm border border-gray-200/50 cursor-pointer"
+                                title="Kurangi"
                               >
                                 <Minus className="w-4 h-4" />
                               </button>
                               <input
                                 type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 value={item.qty}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => updateCartQtyManual(item.product.id, parseInt(e.target.value) || 0)}
-                                className="text-sm font-bold w-12 text-center bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-primary-400 rounded-md py-1 transition-all"
+                                className="text-sm font-bold w-12 text-center bg-white border border-gray-200 focus:ring-2 focus:ring-primary-400 rounded-md py-1 transition-all mx-1 shadow-2xs"
                                 min="0"
                               />
                               <button
                                 onClick={() => updateCartQty(item.product.id, 1)}
                                 className="active-tap w-8 h-8 flex items-center justify-center bg-white rounded-lg text-gray-600 hover:text-gray-900 shadow-sm border border-gray-200/50 cursor-pointer"
+                                title="Tambah"
                               >
                                 <Plus className="w-4 h-4" />
                               </button>
@@ -4450,19 +4528,19 @@ export default function App() {
 
       {/* Sticky Mobile Cart Bar (Hidden on Desktop) */}
       {cartQty > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] p-4 lg:hidden z-30 animate-fadeIn">
-          <div className="flex justify-between items-center gap-4">
-            <div className="flex flex-col">
-              <span className="text-xs font-semibold text-gray-500">Total Belanja</span>
-              <span className="text-lg font-black text-gray-800">{formatRupiah(cartTotal)}</span>
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] px-3.5 py-2.5 sm:p-3.5 lg:hidden z-30 animate-fadeIn">
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Belanja</span>
+              <span className="text-base sm:text-lg font-black text-gray-800 truncate">{formatRupiah(cartTotal)}</span>
             </div>
             <button
               onClick={() => setMobileCartOpen(true)}
-              className="active-tap bg-primary-400 text-primary-900 px-6 py-3 rounded-xl font-bold shadow-sm flex items-center gap-2.5 cursor-pointer"
+              className="active-tap bg-primary-400 hover:bg-primary-500 text-primary-900 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold shadow-xs flex items-center gap-2 cursor-pointer text-xs sm:text-sm shrink-0"
             >
-              <ShoppingBag className="w-5 h-5" />
-              Lihat Keranjang
-              <span className="bg-white text-primary-900 rounded-md px-2 py-0.5 text-xs">
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Lihat Keranjang</span>
+              <span className="bg-white text-primary-900 rounded-md px-1.5 py-0.5 text-[11px] sm:text-xs font-extrabold shadow-2xs">
                 {cartQty}
               </span>
             </button>
@@ -4474,7 +4552,7 @@ export default function App() {
       {activeTab === 'catalog' && catalogCart.length > 0 && (
         <div 
           className={`fixed right-5 z-40 sm:hidden animate-fadeIn transition-all duration-300 ${
-            cartQty > 0 ? 'bottom-24' : 'bottom-6'
+            cartQty > 0 ? 'bottom-20' : 'bottom-6'
           }`}
         >
           <button
