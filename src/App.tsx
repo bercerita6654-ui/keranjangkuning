@@ -2260,7 +2260,7 @@ export default function App() {
       )}
 
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md shadow-xs sticky top-0 z-[90] border-b border-gray-200">
+      <header className="bg-white/95 backdrop-blur-md shadow-xs relative border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink">
             <GlobalMartLogo className="h-7 sm:h-9 w-auto shrink" />
@@ -2336,8 +2336,8 @@ export default function App() {
         {/* Left Column: Products & Catalog */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-5">
           
-          {/* FROZEN STICKY TOP CONTROLS (Data Pelanggan & Menu Daftar Produk) */}
-          <div className="sticky top-14 sm:top-16 z-30 bg-slate-50/95 backdrop-blur-md pt-0.5 pb-2 -mx-1 sm:-mx-2 px-1 sm:px-2 flex flex-col gap-2 border-b border-gray-200/60 shadow-2xs">
+          {/* Menu & Filter Controls */}
+          <div className="flex flex-col gap-2.5">
             
             {/* Row 1: Tab Switcher Menu */}
             <div className="flex items-center justify-between gap-1.5 flex-wrap">
