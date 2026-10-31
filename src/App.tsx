@@ -1206,6 +1206,7 @@ export default function App() {
           grosir: refHeaders.findIndex(h => h === 'grosir' || h.includes('grosir')),
           partai: refHeaders.findIndex(h => h === 'partai' || h.includes('partai')),
           qty: refHeaders.findIndex(h => h === 'qty' || h.includes('stok') || h.includes('quantity')),
+          infoUnit: refHeaders.findIndex(h => h.includes('info unit') || h.includes('info_unit') || h === 'info unit'),
         };
 
         const imgStoryIdx = refHeaders.findIndex(h => h.includes('gambar story') || h === 'gambarstory');
@@ -1229,6 +1230,7 @@ export default function App() {
 
           const barcodeVal = refColIdx.barcode !== -1 && row[refColIdx.barcode] ? row[refColIdx.barcode].trim() : '-';
           const unitVal = refColIdx.unit !== -1 && row[refColIdx.unit] ? row[refColIdx.unit].trim() : '-';
+          const infoUnitVal = refColIdx.infoUnit !== -1 && row[refColIdx.infoUnit] ? row[refColIdx.infoUnit].toString().trim() : (row.length > 20 && row[20] ? row[20].toString().trim() : '');
           const kategoriVal = refColIdx.kategori !== -1 && row[refColIdx.kategori] ? row[refColIdx.kategori].trim() : '-';
           const merkVal = refColIdx.merk !== -1 && row[refColIdx.merk] ? row[refColIdx.merk].trim() : '-';
 
@@ -1301,6 +1303,7 @@ export default function App() {
             fotoProdukId: extractId(fProdukVal),
             lastUpdateFoto: luFotoVal,
             unit: unitVal,
+            infoUnit: infoUnitVal || undefined,
             stok: {
               gudang: finalStokGudang,
               toko: finalStokToko,

@@ -10,6 +10,7 @@ export interface Product {
   fotoProdukId: string | null;
   lastUpdateFoto: string;
   unit: string;
+  infoUnit?: string;
   stok: {
     gudang: number;
     toko: number;

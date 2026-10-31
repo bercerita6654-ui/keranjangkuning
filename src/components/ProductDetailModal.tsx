@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, PlusCircle } from 'lucide-react';
+import { X, Image as ImageIcon, PlusCircle, StickyNote } from 'lucide-react';
 import { Product } from '../types';
 import { formatRupiah, getGoogleDriveThumbnail } from '../utils/helpers';
 
@@ -77,21 +77,41 @@ export default function ProductDetailModal({
             <p className="text-xs text-gray-400 font-semibold mt-1.5 uppercase tracking-wide">
               {product.kategori || '-'} | {product.merk || '-'}
             </p>
+            {product.infoUnit && (
+              <div className="mt-3 bg-amber-50/80 border border-amber-200/60 p-3 rounded-2xl flex items-start gap-2.5">
+                <div className="bg-amber-100 text-amber-700 p-1 rounded-lg shrink-0 mt-0.5">
+                  <StickyNote className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block">Info Unit</span>
+                  <p className="text-xs font-bold text-amber-900 mt-0.5 whitespace-pre-line leading-relaxed">{product.infoUnit}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Detail List Harga */}
           <div className="grid grid-cols-3 gap-3 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
             <div className="text-center">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Eceran</span>
-              <p className="text-sm font-black text-gray-800 mt-0.5">{formatRupiah(product.harga.eceran)}</p>
+              <p className="text-sm font-black text-gray-800 mt-0.5">
+                {formatRupiah(product.harga.eceran)}
+                {product.unit && <span className="text-[11px] font-bold text-gray-600">/{product.unit}</span>}
+              </p>
             </div>
             <div className="text-center border-x border-gray-200/80">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Grosir</span>
-              <p className="text-sm font-black text-gray-800 mt-0.5">{formatRupiah(product.harga.grosir)}</p>
+              <p className="text-sm font-black text-gray-800 mt-0.5">
+                {formatRupiah(product.harga.grosir)}
+                {product.unit && <span className="text-[11px] font-bold text-gray-600">/{product.unit}</span>}
+              </p>
             </div>
             <div className="text-center">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Partai</span>
-              <p className="text-sm font-black text-gray-800 mt-0.5">{formatRupiah(product.harga.partai)}</p>
+              <p className="text-sm font-black text-gray-800 mt-0.5">
+                {formatRupiah(product.harga.partai)}
+                {product.unit && <span className="text-[11px] font-bold text-gray-600">/{product.unit}</span>}
+              </p>
             </div>
           </div>
         </div>
